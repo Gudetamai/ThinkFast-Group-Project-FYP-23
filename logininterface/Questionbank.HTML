@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ThinkFast – Question Bank</title>
+  <link href="https://fonts.googleapis.com/css2?family=Boogaloo&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="questionbank.css">
+</head>
+<body>
+
+  <div class="blob blob-1"></div><div class="blob blob-2"></div><div class="blob blob-3"></div>
+
+  <nav class="navbar">
+    <a class="nav-logo" href="#"><div class="nav-logo-icon">⚡</div><span class="nav-logo-name">Think<span>Fast</span></span></a>
+    <div class="nav-right">
+      <span class="nav-badge">🎓 Teacher</span>
+      <a class="nav-btn" href="thinkfast-login.html">🚪 Log Out</a>
+    </div>
+  </nav>
+
+  <main class="main">
+    <div class="page-header">
+      <h1>📚 Question <span>Bank</span></h1>
+      <p>Add, edit and delete your quiz questions — build the ultimate question bank!</p>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-icon yellow">📝</div><div><div class="stat-val" id="stat-total">0</div><div class="stat-lbl">Total Questions</div></div></div>
+      <div class="stat-card"><div class="stat-icon blue">🔵</div><div><div class="stat-val" id="stat-mc">0</div><div class="stat-lbl">Multiple Choice</div></div></div>
+      <div class="stat-card"><div class="stat-icon green">✅</div><div><div class="stat-val" id="stat-cats">0</div><div class="stat-lbl">Categories</div></div></div>
+      <div class="stat-card"><div class="stat-icon red">🖼️</div><div><div class="stat-val" id="stat-img">0</div><div class="stat-lbl">With Images</div></div></div>
+    </div>
+
+    <div class="toolbar">
+      <div class="search-wrap"><span class="icon">🔍</span><input type="text" id="search-input" placeholder="Search questions…" oninput="renderList()"></div>
+      <select class="filter-select" id="filter-cat" onchange="renderList()"><option value="">All Categories</option></select>
+      <button class="btn-add" onclick="openAdd()">➕ Add Question</button>
+    </div>
+
+    <div class="q-list" id="q-list"></div>
+  </main>
+
+  <!-- Add/Edit Modal -->
+  <div class="overlay" id="form-overlay" onclick="overlayClick(event,'form-overlay')">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title" id="modal-title">➕ Add Question</span>
+        <button class="modal-close" onclick="closeModal('form-overlay')">✕</button>
+      </div>
+      <div class="m-field"><label>Question Text *</label><textarea id="f-question" rows="3" placeholder="Type your question here…"></textarea></div>
+      <div class="m-field">
+        <label>Category</label>
+        <select id="f-category">
+          <option>General</option><option>Science</option><option>Math</option>
+          <option>History</option><option>Technology</option><option>Language</option>
+        </select>
+      </div>
+      <div class="m-field">
+        <label>Answer Choices *</label>
+        <div class="choices-grid">
+          <div class="choice-input-wrap"><div class="choice-pip a">A</div><input type="text" id="f-a" placeholder="Choice A"></div>
+          <div class="choice-input-wrap"><div class="choice-pip b">B</div><input type="text" id="f-b" placeholder="Choice B"></div>
+          <div class="choice-input-wrap"><div class="choice-pip c">C</div><input type="text" id="f-c" placeholder="Choice C"></div>
+          <div class="choice-input-wrap"><div class="choice-pip d">D</div><input type="text" id="f-d" placeholder="Choice D"></div>
+        </div>
+      </div>
+      <span class="correct-label">Correct Answer *</span>
+      <div class="correct-row">
+        <button class="correct-btn" id="cb-a" onclick="selectCorrect('A')">A</button>
+        <button class="correct-btn" id="cb-b" onclick="selectCorrect('B')">B</button>
+        <button class="correct-btn" id="cb-c" onclick="selectCorrect('C')">C</button>
+        <button class="correct-btn" id="cb-d" onclick="selectCorrect('D')">D</button>
+      </div>
+      <div class="m-field"><label>Image URL (optional)</label><input type="text" id="f-img" placeholder="https://example.com/image.jpg"></div>
+      <div class="modal-footer">
+        <button class="btn-cancel" onclick="closeModal('form-overlay')">Cancel</button>
+        <button class="btn-save" onclick="saveQuestion()">💾 Save Question</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Modal -->
+  <div class="overlay" id="del-overlay" onclick="overlayClick(event,'del-overlay')">
+    <div class="modal del-modal">
+      <div class="del-icon">🗑️</div>
+      <h2>Delete Question?</h2>
+      <p>This action cannot be undone. The question will be permanently removed from your question bank.</p>
+      <div class="modal-footer" style="justify-content:center;gap:12px">
+        <button class="btn-cancel" onclick="closeModal('del-overlay')">Cancel</button>
+        <button class="btn-del-confirm" onclick="confirmDelete()">🗑️ Yes, Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    let questions = [
+      {id:1,text:'What does HTML stand for?',choices:['HyperText Markup Language','High Tech Modern Language','HyperTool Making Links','Home Text Marking Language'],correct:'A',category:'Technology',img:''},
+      {id:2,text:'Which planet is known as the Red Planet?',choices:['Venus','Jupiter','Mars','Saturn'],correct:'C',category:'Science',img:''},
+      {id:3,text:'What is 12 × 12?',choices:['124','144','142','148'],correct:'B',category:'Math',img:''},
+      {id:4,text:'Who wrote Romeo and Juliet?',choices:['Charles Dickens','William Shakespeare','Jane Austen','Leo Tolstoy'],correct:'B',category:'History',img:''},
+    ];
+    let nextId=5, editingId=null, deletingId=null, selectedCorrect='';
+    const LABELS=['A','B','C','D'], COLORS=['a','b','c','d'];
+
+    const $=id=>document.getElementById(id);
+
+    function updateStats() {
+      $('stat-total').textContent=$('stat-mc').textContent=questions.length;
+      $('stat-cats').textContent=new Set(questions.map(q=>q.category)).size;
+      $('stat-img').textContent=questions.filter(q=>q.img).length;
+    }
+
+    function updateCatFilter() {
+      const sel=$('filter-cat'), cur=sel.value;
+      sel.innerHTML='<option value="">All Categories</option>';
+      [...new Set(questions.map(q=>q.category))].sort().forEach(c=>{
+        const o=document.createElement('option');
+        o.value=o.textContent=c; if(c===cur)o.selected=true; sel.appendChild(o);
+      });
+    }
+
+    function renderList() {
+      const search=$('search-input').value.toLowerCase(), cat=$('filter-cat').value, list=$('q-list');
+      const filtered=questions.filter(q=>(!cat||q.category===cat)&&(!search||q.text.toLowerCase().includes(search)||q.choices.some(c=>c.toLowerCase().includes(search))));
+      if(!filtered.length){list.innerHTML=`<div class="empty-state"><div class="empty-icon">🔍</div><p>${questions.length?'No questions match your search.':'No questions yet — click ➕ Add Question to get started!'}</p></div>`;return;}
+      list.innerHTML=filtered.map((q,i)=>`
+        <div class="q-card" style="animation-delay:${i*.05}s">
+          <div class="q-number">${i+1}</div>
+          <div class="q-body">
+            <div class="q-text">${esc(q.text)}</div>
+            <div class="q-choices">${q.choices.map((c,ci)=>`<div class="q-choice ${LABELS[ci]===q.correct?'correct':''}"><div class="choice-label ${COLORS[ci]}">${LABELS[ci]}</div>${esc(c)}${LABELS[ci]===q.correct?' ✅':''}</div>`).join('')}</div>
+            <div class="q-meta"><span class="q-tag">${esc(q.category)}</span>${q.img?'<span class="q-tag purple">🖼️ Image</span>':''}</div>
+          </div>
+          <div class="q-actions">
+            <button class="action-btn edit" title="Edit" onclick="openEdit(${q.id})">✏️</button>
+            <button class="action-btn del" title="Delete" onclick="openDelete(${q.id})">🗑️</button>
+          </div>
+        </div>`).join('');
+    }
+
+    const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const openModal=id=>$(id).classList.add('open');
+    const closeModal=id=>$(id).classList.remove('open');
+    function overlayClick(e,id){if(e.target.id===id)closeModal(id);}
+
+    function clearForm(){
+      ['f-question','f-a','f-b','f-c','f-d','f-img'].forEach(id=>$(id).value='');
+      $('f-category').value='General'; selectCorrect('');
+    }
+
+    function selectCorrect(letter){
+      selectedCorrect=letter;
+      LABELS.forEach(l=>{$('cb-'+l.toLowerCase()).className='correct-btn'+(letter===l?' selected-'+l.toLowerCase():'');});
+    }
+
+    function openAdd(){editingId=null;clearForm();$('modal-title').textContent='➕ Add Question';openModal('form-overlay');}
+
+    function openEdit(id){
+      const q=questions.find(x=>x.id===id); if(!q)return;
+      editingId=id; $('modal-title').textContent='✏️ Edit Question';
+      $('f-question').value=q.text; $('f-category').value=q.category;
+      ['a','b','c','d'].forEach((l,i)=>$('f-'+l).value=q.choices[i]);
+      $('f-img').value=q.img; selectCorrect(q.correct); openModal('form-overlay');
+    }
+
+    function saveQuestion(){
+      const text=$('f-question').value.trim();
+      const [a,b,c,d]=['a','b','c','d'].map(l=>$('f-'+l).value.trim());
+      const cat=$('f-category').value, img=$('f-img').value.trim();
+      if(!text)          return showToast('⚠️ Please enter a question!','error');
+      if(!a||!b||!c||!d) return showToast('⚠️ Please fill in all 4 choices!','error');
+      if(!selectedCorrect)return showToast('⚠️ Please select the correct answer!','error');
+      if(editingId){
+        const q=questions.find(x=>x.id===editingId);
+        Object.assign(q,{text,choices:[a,b,c,d],correct:selectedCorrect,category:cat,img});
+        showToast('✅ Question updated!');
+      } else {
+        questions.push({id:nextId++,text,choices:[a,b,c,d],correct:selectedCorrect,category:cat,img});
+        showToast('🎉 Question added!');
+      }
+      closeModal('form-overlay'); updateCatFilter(); updateStats(); renderList();
+    }
+
+    function openDelete(id){deletingId=id;openModal('del-overlay');}
+    function confirmDelete(){
+      questions=questions.filter(q=>q.id!==deletingId); deletingId=null;
+      closeModal('del-overlay'); updateCatFilter(); updateStats(); renderList();
+      showToast('🗑️ Question deleted.','warn');
+    }
+
+    function showToast(msg,type=''){
+      const t=$('toast'); t.textContent=msg;
+      t.className='toast'+(type?' '+type:''); t.classList.add('show');
+      setTimeout(()=>t.classList.remove('show'),3000);
+    }
+
+    updateCatFilter(); updateStats(); renderList();
+  </script>
+</body>
+</html>
