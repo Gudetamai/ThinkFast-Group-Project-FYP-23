@@ -15,6 +15,7 @@
     <a class="nav-logo" href="#"><div class="nav-logo-icon">⚡</div><span class="nav-logo-name">Think<span>Fast</span></span></a>
     <div class="nav-right">
       <span class="nav-badge">🎓 Teacher</span>
+      <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle light/dark mode">🌙</button>
       <a class="nav-btn" href="thinkfast-login.html">🚪 Log Out</a>
     </div>
   </nav>
@@ -104,8 +105,16 @@
     ];
     let nextId=5, editingId=null, deletingId=null, selectedCorrect='';
     const LABELS=['A','B','C','D'], COLORS=['a','b','c','d'];
-
     const $=id=>document.getElementById(id);
+
+    /* ── Theme toggle ── */
+    let isLight = false;
+    function toggleTheme() {
+      isLight = !isLight;
+      document.body.classList.toggle('light', isLight);
+      $('theme-btn').textContent = isLight ? '🌙' : '☀️';
+      showToast(isLight ? '☀️ Light mode on!' : '🌙 Dark mode on!');
+    }
 
     function updateStats() {
       $('stat-total').textContent=$('stat-mc').textContent=questions.length;
@@ -170,12 +179,11 @@
       const text=$('f-question').value.trim();
       const [a,b,c,d]=['a','b','c','d'].map(l=>$('f-'+l).value.trim());
       const cat=$('f-category').value, img=$('f-img').value.trim();
-      if(!text)          return showToast('⚠️ Please enter a question!','error');
-      if(!a||!b||!c||!d) return showToast('⚠️ Please fill in all 4 choices!','error');
-      if(!selectedCorrect)return showToast('⚠️ Please select the correct answer!','error');
+      if(!text)           return showToast('⚠️ Please enter a question!','error');
+      if(!a||!b||!c||!d)  return showToast('⚠️ Please fill in all 4 choices!','error');
+      if(!selectedCorrect) return showToast('⚠️ Please select the correct answer!','error');
       if(editingId){
-        const q=questions.find(x=>x.id===editingId);
-        Object.assign(q,{text,choices:[a,b,c,d],correct:selectedCorrect,category:cat,img});
+        Object.assign(questions.find(x=>x.id===editingId),{text,choices:[a,b,c,d],correct:selectedCorrect,category:cat,img});
         showToast('✅ Question updated!');
       } else {
         questions.push({id:nextId++,text,choices:[a,b,c,d],correct:selectedCorrect,category:cat,img});
