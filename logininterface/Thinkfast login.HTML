@@ -59,9 +59,18 @@
         <label>Full Name</label>
         <div class="field-inner">
           <span class="icon">👤</span>
-          <input type="text" id="su-name" placeholder="Dr. Ahmad Fahmi" autocomplete="name">
+          <input type="text" id="su-fullname" placeholder="Ts. Fahmi Adzha" autocomplete="fullname">
         </div>
       </div>
+
+      <div class="field">
+        <label>Username</label>
+        <div class="field-inner">
+          <span class="icon">🏷️</span>
+          <input type="text" id="su-username" placeholder="ahmad_2026" autocomplete="username">
+        </div>
+      </div>
+
       <div class="field">
         <label>Email Address</label>
         <div class="field-inner">
@@ -101,6 +110,14 @@
 
   <div class="toast" id="toast"></div>
 
+  <!-- Sync with database -->
+  <!-- Connects to Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- What to do once connected -->
+   <script src="app.js"></script>
+
+  <!-- Functioning frontend to database -->
   <script>
     function switchTab(tab) {
       ['login','signup'].forEach(t => {
@@ -149,20 +166,47 @@
       showToast('✅ Welcome back, Teacher! Redirecting…');
     }
 
-    function handleSignup() {
-      const name    = document.getElementById('su-name').value.trim();
+    async function handleSignup() {
+      const fullname = document.getElementById('su-fullname').value.trim();
+      const username = document.getElementById('su-username').value.trim();
       const email   = document.getElementById('su-email').value.trim();
       const pass    = document.getElementById('su-pass').value;
       const confirm = document.getElementById('su-confirm').value;
       const terms   = document.getElementById('terms').checked;
-      if (!name||!email||!pass||!confirm) return showToast('⚠️ Please fill in all fields!', true);
+
+      // Frontend validation
+      if (!fullname||!email||!pass||!confirm) return showToast('⚠️ Please fill in all fields!', true);
       if (!email.includes('@'))           return showToast('⚠️ Enter a valid email address!', true);
       if (pass.length < 8)                return showToast('⚠️ Password must be at least 8 characters!', true);
       if (pass !== confirm)               return showToast('⚠️ Passwords do not match!', true);
       if (!terms)                         return showToast('⚠️ Please accept the Terms of Service!', true);
+      
+      // Supabase Handshake 
+      showToast('⏳ Creating your account...');
+
+      try {
+        const {  data, error  } = await sbClient.auth.signUp({
+          email: email,
+          password: pass,
+          options: {
+            data: { 
+              fullname: fullname, // fullname and username are stored in the "users" table as additional metadata which later will be grabbed by the sql trigger to be put into public.profiles
+              username: username
+            } 
+          }
+        });
+
+      if (error) throw error;
+
+      // Success
       showToast('🎉 Account created! Please log in.');
       setTimeout(() => switchTab('login'), 1200);
+    } catch (error) {
+    showToast('❌ ' + (error.message || 'Signup failed!'), true);
+    console.error('Signup error:', error.message);
     }
+  }
   </script>
+
 </body>
 </html>
