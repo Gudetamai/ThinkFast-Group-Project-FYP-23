@@ -24,3 +24,20 @@ async function handleLogin(email, password) {
         showToast('✅ Welcome back, Teacher!');
     }
 }
+
+async function handleLogout() {
+    const { error } = await sbClient.auth.signOut();
+    
+    if (error) {
+        console.error("Error signing out:", error.message);
+    }
+
+    // Clear your custom local storage data
+    localStorage.removeItem('teacher_id');
+    
+    // Clear any other session data if necessary
+    localStorage.clear(); 
+
+    // 3. Redirect to the login page
+    window.location.href = 'index.html'; 
+}
