@@ -70,3 +70,125 @@
 
         </div>
     </main>
+
+<script>
+    const $ = id => document.getElementById(id);
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionId = urlParams.get('id');
+    
+    // Retrieve the teacher's ID saved during login
+    const currentTeacherId = localStorage.getItem('teacher_id');
+    
+    let players = [];
+
+    // Initial Load: Get session info and start listening
+    async function initLobby() {
+        if (!sessionId) {
+            window.location.href = 'LaunchSession.html';
+            return;
+        }
+
+        // Fetch session details from Supabase
+        const { data: session } = await supabase
+            .from('game_sessions')
+            .select('*, quizzes(title, question_count)')
+            .eq('id', sessionId)
+            .single();
+
+        if (session) {
+            $('pin-display').innerHTML = `${session.join_code} <button class="pin-copy" onclick="copyPin('${session.join_code}')">📋</button>`;
+            $('stat-qcount').textContent = session.quizzes.question_count;
+            $('stat-time').textContent = session.settings.time_limit + 's';
+        }
+
+        subscribeToHardware();
+    }
+
+    // Realtime Listener: Detects when an ESP32 connects to the database
+    function subscribeToHardware() {
+        supabase
+            .channel('lobby-updates')
+            .on('postgres_changes', { 
+                event: 'INSERT', 
+                schema: 'public', 
+                table: 'session_participants',
+                filter: `session_id=eq.${sessionId}` 
+            }, payload => {
+                // When a controller joins, prompt the teacher to assign a student
+                assignStudent(payload.new.id, payload.new.controller_id);
+            })
+            .subscribe();
+    }
+
+    // Mapping Logic: Link the physical controller to a specific student
+    async function assignStudent(participantRowId, controllerId) {
+    const studentIdInput = prompt(`New Controller: ${controllerId}\nEnter Student ID:`);
+    const currentTeacherId = localStorage.getItem('teacher_id');
+
+        if (studentIdInput && currentTeacherId) {
+            // Filter by 'teacher_id' to ensure the teacher can't link a student that doesn't belong to their profile.
+            const { data: student, error } = await supabase
+                .from('students')
+                .select('id, student_name')
+                .eq('id', studentIdInput)
+                .eq('teacher_id', currentTeacherId) 
+                .single();
+
+            if (error || !student) {
+                alert("Student not found in your class list.");
+                return;
+            }
+
+            // Update participant record with the student's ID
+            await supabase
+                .from('session_participants')
+                .update({ student_id: student.id })
+                .eq('id', participantRowId);
+                
+            // Refresh the UI to show the student's name
+            renderPlayerChip({ ...student, controller_id: controllerId });
+        }
+    }
+
+    function renderPlayerChip(participant) {
+        if (players.length === 0) $('player-grid').innerHTML = '';
+        players.push(participant);
+        $('stat-players').textContent = players.length;
+
+        const chip = document.createElement('div');
+        chip.className = 'player-chip';
+        chip.innerHTML = `
+            <div class="player-avatar" style="background: var(--blue)">👾</div>
+            <div>
+                <strong>${participant.student_name}</strong>
+                <div style="font-size: 10px; opacity: 0.7;">Ctrl: ${participant.controller_id}</div>
+            </div>
+        `;
+        $('player-grid').appendChild(chip);
+        $('btn-start').disabled = false;
+    }
+
+    async function endSession() {
+        if (confirm("Are you sure you want to end this session? All progress will be saved.")) {
+            // Update the session status in Supabase
+            await supabase
+                .from('game_sessions')
+                .update({ status: 'finished' })
+                .eq('id', sessionId);
+
+            // Redirect back to the launch page
+            window.location.href = 'LaunchSession.html';
+        }
+    }
+    
+    function copyPin(pin) {
+        navigator.clipboard.writeText(pin);
+        alert("PIN Copied!");
+    }
+
+    initLobby();
+
+</script>
+
+</body>
+</html>
