@@ -138,11 +138,15 @@
     }
 
     // Logic Functions
-    // Fetch real quizzes from 'quizzes' table
+    
+    // Fetch quizzes (Filtered by the logged-in teacher)
     async function renderQuizzes(){
+      const teacherId = localStorage.getItem('teacher_id'); // Grab the ID
+
       const { data: quizzes, error } = await supabase
         .from('quizzes')
         .select('*')
+        .eq('teacher_id', teacherId) // Only pull this teacher's folders
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -151,14 +155,14 @@
       }
 
       $('quiz-grid').innerHTML = quizzes.map(q => `
-        <div class="quiz-card" id="qz-${q.id}" onclick="selectQuiz('${q.id}', '${q.title}')">
+        <div class="quiz-card" id="qz-${q.id}" onclick="selectQuiz('${q.id}', '${esc(q.title)}')">
           <div class="quiz-check">✓</div>
           <div class="quiz-emoji">📘</div> 
-          <div class="quiz-title">${q.title}</div>
+          <div class="quiz-title">${esc(q.title)}</div>
           <div class="quiz-meta">
             <span>❓ ${q.question_count || 0} Qs</span>
-            <span>🏷️ ${q.category || 'General'}</span>
-            <span>⭐ ${q.difficulty || 'Easy'}</span>
+            <span>🏷️ ${esc(q.category || 'General')}</span>
+            <span>⭐ ${esc(q.difficulty || 'Easy')}</span>
           </div>
         </div>`).join('');
     }
@@ -176,6 +180,7 @@
       if(!selectedQuizId) return showToast('⚠️ Please select a quiz first!','error');
 
       // Generate the 6-digit PIN for ESP32 hardware
+      const teacherId = localStorage.getItem('teacher_id'); // Grab the ID
       const gamePin = Math.floor(100000+Math.random()*900000).toString();
 
       // Get settings from the UI
@@ -192,6 +197,7 @@
       const { data, error } = await supabase
         .from('game_sessions')
         .insert([{
+          teacher_id: teacherId, 
           quiz_id: selectedQuizId,
           join_code: gamePin,
           status: 'waiting', // Set to waiting so students can join
@@ -205,9 +211,8 @@
         showToast('❌ Database Error: Could not launch session', 'error');
       } else {
         showToast('🎉 Launching Session');
-        // Move to the Lobby page, passing the session ID in the URL
         setTimeout(() => {
-          window.location.href = `lobby.html?id=${data.id}`;
+          window.location.href = `Lobby.html?id=${data.id}`; 
         }, 1500);
       }
     }
