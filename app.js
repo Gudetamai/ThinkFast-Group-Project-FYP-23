@@ -6,3 +6,21 @@ const sbClient = supabase.createClient(supabaseUrl, supabaseKey);
 
 // Notify if connection is successful
 console.log("Database connection successful");
+
+async function handleLogin(email, password) {
+    const { data, error } = await sbClient.auth.signInWithPassword({
+        email,
+        password
+    });
+
+    if (error) {
+        showToast('❌ ' + (error.message || 'Login failed!'), true);
+        console.error('Login error:', error.message);
+    } else {
+        // data.user.id is the UUID from auth.users, 
+        // which matches 'id' in public.profiles and 'teacher_id' in students.
+        localStorage.setItem('teacher_id', data.user.id);
+        window.location.href = 'LaunchSession.html';
+        showToast('✅ Welcome back, Teacher!');
+    }
+}
