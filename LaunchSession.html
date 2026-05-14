@@ -93,10 +93,24 @@
 
   <div class="toast" id="toast"></div>
 
+  <!--Database & State configuration-->
   <script>
     const $=id=>document.getElementById(id);
     let isLight=false;
+    let selectedQuizId = null;
+    let timePerQ = 20;
+  </script>
 
+  <!-- Sync with database -->
+  <!-- Connects to Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- What to do once connected -->
+   <script src="app.js"></script>
+
+   <!-- Functioning frontend to database -->
+  <script>
+    // UI Functions
     function toggleTheme(){
       isLight=!isLight;
       document.body.classList.toggle('light',isLight);
@@ -104,6 +118,10 @@
       showToast(isLight?'☀️ Light mode on!':'🌙 Dark mode on!');
     }
 
+    function showToast(msg,type=''){
+      const t=$('toast'); t.textContent=msg;
+      t.className='toast'+(type?' '+type:''); t.classList.add('show');
+      setTimeout(()=>t.classList.remove('show'),3000);
     }
 
     function setTime(val, btn){
@@ -112,15 +130,82 @@
       btn.classList.add('active');
     }
 
+    // Logic Functions
+    // Fetch real quizzes from 'quizzes' table
+    async function renderQuizzes(){
+      const { data: quizzes, error } = await supabase
+        .from('quizzes')
+        .select('*')
+        .order('created_at', { ascending: false });
 
+      if (error) {
+        showToast('❌ Error loading quizzes', 'error');
+        return;
+      }
+
+      $('quiz-grid').innerHTML = quizzes.map(q => `
+        <div class="quiz-card" id="qz-${q.id}" onclick="selectQuiz('${q.id}', '${q.title}')">
+          <div class="quiz-check">✓</div>
+          <div class="quiz-emoji">📘</div> 
+          <div class="quiz-title">${q.title}</div>
+          <div class="quiz-meta">
+            <span>❓ ${q.question_count || 0} Qs</span>
+            <span>🏷️ ${q.category || 'General'}</span>
+            <span>⭐ ${q.difficulty || 'Easy'}</span>
+          </div>
         </div>`).join('');
     }
 
+    function selectQuiz(id, title){
+      selectedQuizId = id;
+      document.querySelectorAll('.quiz-card').forEach(c=>c.classList.remove('selected'));
+      $('qz-'+id).classList.add('selected');
+      $('btn-launch').disabled = false;
+      showToast(`✅ "${title}" selected!`);
     }
 
+    // Create session when launch button is clicked
+    async function launchSession(){
+      if(!selectedQuizId) return showToast('⚠️ Please select a quiz first!','error');
+
+      // Generate the 6-digit PIN for ESP32 hardware
+      const gamePin = Math.floor(100000+Math.random()*900000).toString();
+
+      // Get settings from the UI
+      const sessionSettings = {
+        time_limit: timePerQ,
+        max_players: parseInt($('max-players').value),
+        shuffle: $('toggle-shuffle').checked,
+        show_answers: $('toggle-answer').checked,
+        live_leaderboard: $('toggle-leader').checked,
+        session_name: $('session-name').value || "New Session"
+      };
+
+      // INSERT into game_sessions table
+      const { data, error } = await supabase
+        .from('game_sessions')
+        .insert([{
+          quiz_id: selectedQuizId,
+          join_code: gamePin,
+          status: 'waiting', // Set to waiting so students can join
+          settings: sessionSettings
+        }])
+        .select()
+        .single();
+
+      if (error) {
+        console.error(error);
+        showToast('❌ Database Error: Could not launch session', 'error');
+      } else {
+        showToast('🎉 Launching Session');
+        // Move to the Lobby page, passing the session ID in the URL
+        setTimeout(() => {
+          window.location.href = `lobby.html?id=${data.id}`;
+        }, 1500);
       }
     }
 
+    // Initial call to load data
     renderQuizzes();
   </script>
 </body>
