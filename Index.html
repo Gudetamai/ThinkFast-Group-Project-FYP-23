@@ -50,7 +50,7 @@
         </div>
       </div>
       <div class="link-row"><a href="#">Forgot password?</a></div>
-      <button class="btn-submit" onclick="handleLogin()">⚡ LOG IN &amp; BUZZ IN</button>
+      <button class="btn-submit" onclick="onLoginClick()">⚡ LOG IN &amp; BUZZ IN</button>
       <div class="bottom-note">Don't have an account? <a href="#" onclick="switchTab('signup');return false;">Sign up here</a></div>
     </div>
 
@@ -158,12 +158,13 @@
       setTimeout(() => t.classList.remove('show'), 3000);
     }
 
-    function handleLogin() {
+    function onLoginClick() {
       const email = document.getElementById('login-email').value.trim();
       const pass  = document.getElementById('login-pass').value;
       if (!email || !pass)      return showToast('⚠️ Please fill in all fields!', true);
       if (!email.includes('@')) return showToast('⚠️ Enter a valid email address!', true);
-      showToast('✅ Welcome back, Teacher! Redirecting…');
+      // Calls global function from app.js
+      handleLogin(email, pass);
     }
 
     async function handleSignup() {
@@ -181,7 +182,7 @@
       if (pass !== confirm)               return showToast('⚠️ Passwords do not match!', true);
       if (!terms)                         return showToast('⚠️ Please accept the Terms of Service!', true);
       
-      // Supabase Handshake 
+      // Supabase Connection for signup
       showToast('⏳ Creating your account...');
 
       try {
