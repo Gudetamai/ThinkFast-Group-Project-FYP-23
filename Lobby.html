@@ -72,6 +72,13 @@
     </main>
 
 <script>
+    // Enforces only logged in users can access this page
+    const teacherId = localStorage.getItem('teacher_id');
+    if (!teacherId) {
+    // If no teacher ID is found, kick them back to login
+    window.location.href = 'index.html';
+    }
+
     const $ = id => document.getElementById(id);
     const urlParams = new URLSearchParams(window.location.search);
     const sessionId = urlParams.get('id');

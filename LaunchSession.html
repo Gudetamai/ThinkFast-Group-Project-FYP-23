@@ -110,6 +110,13 @@
 
    <!-- Functioning frontend to database -->
   <script>
+    // Enforces only logged in users can access this page
+    const teacherId = localStorage.getItem('teacher_id');
+    if (!teacherId) {
+    // If no teacher ID is found, kick them back to login
+    window.location.href = 'index.html';
+    }
+
     // UI Functions
     function toggleTheme(){
       isLight=!isLight;

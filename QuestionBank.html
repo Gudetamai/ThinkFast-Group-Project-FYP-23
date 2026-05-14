@@ -121,6 +121,11 @@
       $('stat-total').textContent=$('stat-mc').textContent=questions.length;
       $('stat-cats').textContent=new Set(questions.map(q=>q.category)).size;
       $('stat-img').textContent=questions.filter(q=>q.img).length;
+    // Enforces only logged in users can access this page
+    const teacherId = localStorage.getItem('teacher_id');
+    if (!teacherId) {
+    // If no teacher ID is found, kick them back to login
+    window.location.href = 'index.html';
     }
 
     function updateCatFilter() {
