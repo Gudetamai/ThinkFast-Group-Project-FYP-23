@@ -129,13 +129,13 @@
             // Filter by 'teacher_id' to ensure the teacher can't link a student that doesn't belong to their profile.
             const { data: student, error } = await supabase
                 .from('students')
-                .select('id, student_name')
-                .eq('id', studentIdInput)
+                .select('id, student_name, student_code') // Display student_code too to help teachers identify the correct student
+                .eq('student_code', studentIdInput) // filter by student_code instead of uuid for better, easier UX
                 .eq('teacher_id', currentTeacherId) 
                 .single();
 
             if (error || !student) {
-                alert("Student not found in your class list.");
+                alert("Student not found in the class list.");
                 return;
             }
 
@@ -145,7 +145,7 @@
                 .update({ student_id: student.id })
                 .eq('id', participantRowId);
                 
-            // Refresh the UI to show the student's name
+            // Pass student's data to UI Render function so it shows the student's data
             renderPlayerChip({ ...student, controller_id: controllerId });
         }
     }
@@ -161,7 +161,10 @@
             <div class="player-avatar" style="background: var(--blue)">👾</div>
             <div>
                 <strong>${participant.student_name}</strong>
-                <div style="font-size: 10px; opacity: 0.7;">Ctrl: ${participant.controller_id}</div>
+                <!-- Added the student code right here so the teacher can verify it -->
+                <div style="font-size: 10px; opacity: 0.7;">
+                    Code: ${participant.student_code} | Ctrl: ${participant.controller_id}
+                </div>
             </div>
         `;
         $('player-grid').appendChild(chip);
