@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ThinkFast – Launch Session</title>
+  <link href="https://fonts.googleapis.com/css2?family=Boogaloo&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="launchsession.css">
+</head>
+<body>
+
+  <div class="blob blob-1"></div><div class="blob blob-2"></div><div class="blob blob-3"></div>
+
+  <nav class="navbar">
+    <a class="nav-logo" href="#"><div class="nav-logo-icon">⚡</div><span class="nav-logo-name">Think<span>Fast</span></span></a>
+    <div class="nav-right">
+      <span class="nav-badge">🎓 Teacher</span>
+      <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle light/dark mode">🌙</button>
+      <a class="nav-btn" href="questionbank.html">📚 Question Bank</a>
+      <a class="nav-btn" href="thinkfast-login.html">🚪 Log Out</a>
+    </div>
+  </nav>
+
+  <main class="main">
+
+    <div id="setup-panel">
+      <div class="page-header">
+        <h1>🚀 Launch <span>Session</span></h1>
+        <p>Select a quiz, configure your settings, then launch — students join with the PIN!</p>
+      </div>
+
+      <div class="section-label">① Pick a Quiz</div>
+      <div class="quiz-grid" id="quiz-grid"></div>
+
+      <div class="section-label">② Configure Settings</div>
+      <div class="settings-grid">
+
+        <div class="setting-card">
+          <div class="setting-title">⏱️ Time Per Question</div>
+          <div class="time-pills">
+            <button class="time-pill" onclick="setTime(10,this)">10s</button>
+            <button class="time-pill active" onclick="setTime(20,this)">20s</button>
+            <button class="time-pill" onclick="setTime(30,this)">30s</button>
+            <button class="time-pill" onclick="setTime(45,this)">45s</button>
+            <button class="time-pill" onclick="setTime(60,this)">60s</button>
+          </div>
+        </div>
+
+        <div class="setting-card">
+          <div class="setting-title">👥 Max Players</div>
+          <input class="setting-input" type="number" id="max-players" min="2" max="30" value="10" placeholder="e.g. 10">
+        </div>
+
+        <div class="setting-card">
+          <div class="setting-title">🏷️ Session Name</div>
+          <input class="setting-input" type="text" id="session-name" placeholder="e.g. Chapter 5 Quiz" maxlength="40">
+        </div>
+
+        <div class="setting-card">
+          <div class="setting-title">🔀 Shuffle Questions</div>
+          <div class="toggle-row">
+            <div><div class="toggle-label">Randomise order</div><div class="toggle-sub">Each session gets a different order</div></div>
+            <label class="switch"><input type="checkbox" id="toggle-shuffle" checked><span class="slider"></span></label>
+          </div>
+        </div>
+
+        <div class="setting-card">
+          <div class="setting-title">💡 Show Correct Answer</div>
+          <div class="toggle-row">
+            <div><div class="toggle-label">After each question</div><div class="toggle-sub">Players see the correct answer</div></div>
+            <label class="switch"><input type="checkbox" id="toggle-answer" checked><span class="slider"></span></label>
+          </div>
+        </div>
+
+        <div class="setting-card">
+          <div class="setting-title">🏆 Live Leaderboard</div>
+          <div class="toggle-row">
+            <div><div class="toggle-label">Show after each round</div><div class="toggle-sub">Keeps competition exciting</div></div>
+            <label class="switch"><input type="checkbox" id="toggle-leader" checked><span class="slider"></span></label>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="launch-wrap">
+        <button class="btn-launch" id="btn-launch" onclick="launchSession()" disabled>
+          <span class="launch-icon">🚀</span> LAUNCH SESSION
+        </button>
+      </div>
+    </div>
+    <div class="session-panel" id="session-panel">
+
+      <div class="page-header">
+        <h1>⚡ Session <span>Live!</span></h1>
+        <p id="session-subtitle">Waiting for players to join…</p>
+      </div>
+
+      <div class="pin-section">
+        <div class="pulse-ring"></div><div class="pulse-ring"></div><div class="pulse-ring"></div>
+        <div class="pin-label">🎮 Game PIN — Share with your students!</div>
+        <div class="pin-box" id="pin-display">------<button class="pin-copy" onclick="copyPin()" title="Copy PIN">📋</button></div>
+        <div class="pin-hint">Students go to <strong>thinkfast.game</strong> and enter this PIN</div>
+      </div>
+
+      <div class="session-stats">
+        <div class="s-stat"><div class="s-stat-icon yellow">👥</div><div><div class="s-stat-val" id="stat-players">0</div><div class="s-stat-lbl">Players Joined</div></div></div>
+        <div class="s-stat"><div class="s-stat-icon green">❓</div><div><div class="s-stat-val" id="stat-qcount">0</div><div class="s-stat-lbl">Questions</div></div></div>
+        <div class="s-stat"><div class="s-stat-icon blue">⏱️</div><div><div class="s-stat-val" id="stat-time">20s</div><div class="s-stat-lbl">Per Question</div></div></div>
+        <div class="s-stat"><div class="s-stat-icon red">🔴</div><div><div class="s-stat-val" id="stat-status">Waiting</div><div class="s-stat-lbl">Status</div></div></div>
+      </div>
+
+      <div class="q-progress" id="q-progress" style="display:none">
+        <div class="q-progress-header">
+          <span class="q-progress-title">Current Question</span>
+          <span class="q-progress-num" id="q-progress-num">1 / 5</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+        <div class="q-current-text" id="q-current-text"></div>
+      </div>
+
+      <div class="players-card">
+        <div class="players-header">
+          <span class="players-title">👾 Players in Lobby</span>
+          <span class="live-dot">Live</span>
+        </div>
+        <div class="player-grid" id="player-grid">
+          <div class="waiting-msg">⏳ Waiting for players to join<span class="waiting-dots"><span>.</span><span>.</span><span>.</span></span></div>
+        </div>
+      </div>
+
+      <div class="controls-row">
+        <button class="ctrl-btn start"  id="btn-start"  onclick="startGame()"  disabled>▶️ Start Game</button>
+        <button class="ctrl-btn pause"  id="btn-pause"  onclick="pauseGame()"  disabled>⏸️ Pause</button>
+        <button class="ctrl-btn end"    id="btn-end"    onclick="endSession()">🛑 End Session</button>
+      </div>
+
+    </div>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const QUIZZES = [
+      {id:1, emoji:'💻', title:'Web Development 101', questions:8,  category:'Technology', difficulty:'Easy'},
+      {id:2, emoji:'🔬', title:'Science Explorer',    questions:10, category:'Science',    difficulty:'Medium'},
+      {id:3, emoji:'🔢', title:'Math Challenge',      questions:6,  category:'Math',       difficulty:'Hard'},
+      {id:4, emoji:'📖', title:'History Trivia',      questions:12, category:'History',    difficulty:'Easy'},
+      {id:5, emoji:'🌍', title:'General Knowledge',   questions:15, category:'General',    difficulty:'Medium'},
+      {id:6, emoji:'🗣️', title:'Language & Grammar',  questions:9,  category:'Language',   difficulty:'Easy'},
+    ];
+    const AVATARS = ['🦊','🐯','🐼','🐸','🦁','🐙','🦄','🐧','🐺','🦋','🐻','🦅'];
+    const COLORS  = ['var(--yellow)','var(--red)','var(--blue)','var(--green)','var(--purple)'];
+
+    let selectedQuiz=null, timePerQ=20, gamePin='', players=[], gameStarted=false, gamePaused=false;
+    let currentQ=0, joinInterval=null, qInterval=null;
+
+    const $=id=>document.getElementById(id);
+    let isLight=false;
+
+    function toggleTheme(){
+      isLight=!isLight;
+      document.body.classList.toggle('light',isLight);
+      $('theme-btn').textContent=isLight?'🌙':'☀️';
+      showToast(isLight?'☀️ Light mode on!':'🌙 Dark mode on!');
+    }
+
+    function renderQuizzes(){
+      $('quiz-grid').innerHTML=QUIZZES.map(q=>`
+        <div class="quiz-card" id="qz-${q.id}" onclick="selectQuiz(${q.id})">
+          <div class="quiz-check">✓</div>
+          <div class="quiz-emoji">${q.emoji}</div>
+          <div class="quiz-title">${q.title}</div>
+          <div class="quiz-meta">
+            <span>❓ ${q.questions} Qs</span>
+            <span>🏷️ ${q.category}</span>
+            <span>⭐ ${q.difficulty}</span>
+          </div>
+        </div>`).join('');
+    }
+
+    function selectQuiz(id){
+      selectedQuiz=QUIZZES.find(q=>q.id===id);
+      document.querySelectorAll('.quiz-card').forEach(c=>c.classList.remove('selected'));
+      $('qz-'+id).classList.add('selected');
+      $('btn-launch').disabled=false;
+      showToast(`✅ "${selectedQuiz.title}" selected!`);
+    }
+
+    function setTime(val,btn){
+      timePerQ=val;
+      document.querySelectorAll('.time-pill').forEach(p=>p.classList.remove('active'));
+      btn.classList.add('active');
+    }
+    function launchSession(){
+      if(!selectedQuiz) return showToast('⚠️ Please select a quiz first!','error');
+      gamePin=Math.floor(100000+Math.random()*900000).toString();
+      $('pin-display').innerHTML=gamePin+'<button class="pin-copy" onclick="copyPin()" title="Copy PIN">📋</button>';
+      $('stat-qcount').textContent=selectedQuiz.questions;
+      $('stat-time').textContent=timePerQ+'s';
+      $('stat-status').textContent='Waiting';
+      $('setup-panel').style.display='none';
+      $('session-panel').classList.add('active');
+      showToast('🎉 Session launched! PIN: '+gamePin);
+      simulateJoins();
+    }
+
+    const NAMES=['Maisarah','Qumairah','Hassan','Azalea','Ahmad','Faiz','Aisyah','Hafiz','Nur','Amir'];
+    function simulateJoins(){
+      let i=0;
+      joinInterval=setInterval(()=>{
+        if(i>=Math.min(5,NAMES.length)){clearInterval(joinInterval);$('btn-start').disabled=false;return;}
+        const name=NAMES[i++];
+        players.push({name, avatar:AVATARS[players.length%AVATARS.length], color:COLORS[players.length%COLORS.length]});
+        renderPlayers(); updatePlayerStat();
+      },1800);
+    }
+
+    function renderPlayers(){
+      if(!players.length){$('player-grid').innerHTML='<div class="waiting-msg">⏳ Waiting for players<span class="waiting-dots"><span>.</span><span>.</span><span>.</span></span></div>';return;}
+      $('player-grid').innerHTML=players.map((p,i)=>`
+        <div class="player-chip" style="animation-delay:${i*.05}s">
+          <div class="player-avatar" style="background:${p.color}">${p.avatar}</div>${p.name}
+        </div>`).join('');
+    }
+
+    function updatePlayerStat(){ $('stat-players').textContent=players.length; }
+
+    function startGame(){
+      if(!players.length) return showToast('⚠️ No players have joined yet!','error');
+      gameStarted=true; currentQ=0;
+      $('btn-start').disabled=true; $('btn-pause').disabled=false;
+      $('stat-status').textContent='Live!';
+      $('session-subtitle').textContent='Game in progress — '+selectedQuiz.title;
+      $('q-progress').style.display='block';
+      showToast('▶️ Game started! Good luck everyone!');
+      advanceQuestion();
+    }
+
+    function advanceQuestion(){
+      if(currentQ>=selectedQuiz.questions){ endGame(); return; }
+      currentQ++;
+      const pct=Math.round((currentQ/selectedQuiz.questions)*100);
+      $('progress-fill').style.width=pct+'%';
+      $('q-progress-num').textContent=currentQ+' / '+selectedQuiz.questions;
+      $('q-current-text').textContent='Question '+currentQ+': (Sample question from '+selectedQuiz.title+')';
+
+      clearInterval(qInterval);
+      qInterval=setInterval(advanceQuestion, timePerQ*1000);
+    }
+
+    function pauseGame(){
+      gamePaused=!gamePaused;
+      if(gamePaused){ clearInterval(qInterval); $('btn-pause').textContent='▶️ Resume'; $('stat-status').textContent='Paused'; showToast('⏸️ Game paused.','warn'); }
+      else { advanceQuestion(); $('btn-pause').textContent='⏸️ Pause'; $('stat-status').textContent='Live!'; showToast('▶️ Game resumed!'); }
+    }
+
+    function endGame(){
+      clearInterval(qInterval); clearInterval(joinInterval);
+      $('btn-pause').disabled=true; $('stat-status').textContent='Ended';
+      $('q-current-text').textContent='🏆 Game over! Final results loading…';
+      showToast('🏆 Game finished! Great quiz session!');
+    }
+
+    function endSession(){
+      clearInterval(qInterval); clearInterval(joinInterval);
+      if(confirm('End this session and return to setup?')){
+        players=[]; gameStarted=false; gamePaused=false; currentQ=0;
+        $('session-panel').classList.remove('active');
+        $('setup-panel').style.display='block';
+        $('q-progress').style.display='none';
+        $('btn-start').disabled=true; $('btn-pause').disabled=true;
+        $('btn-pause').textContent='⏸️ Pause';
+        renderPlayers(); showToast('🔄 Session ended. Ready to launch again!','warn');
+      }
+    }
+
+    function copyPin(){
+      navigator.clipboard.writeText(gamePin).then(()=>showToast('📋 PIN copied to clipboard!'));
+    }
+
+    function showToast(msg,type=''){
+      const t=$('toast'); t.textContent=msg;
+      t.className='toast'+(type?' '+type:''); t.classList.add('show');
+      setTimeout(()=>t.classList.remove('show'),3000);
+    }
+
+    renderQuizzes();
+  </script>
+</body>
+</html>
