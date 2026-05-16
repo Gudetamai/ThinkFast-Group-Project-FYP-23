@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ThinkFast – Current Question</title>
+  <link href="https://fonts.googleapis.com/css2?family=Boogaloo&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="CurrentQuestion.css">
+</head>
+<body>
+
+<div class="presenter-screen">
+  <div class="q-display-header">
+    <h1 id="active-question-text">What colour is the Sun?</h1>
+  </div>
+
+  <div class="q-display-mid">
+    <div class="q-timer-circle"><span id="timer-num">19</span></div>
+    
+    <div class="q-image-container">
+       <img id="active-question-img" src="Sun.jpg" alt="Question Image">
+    </div>
+
+    <div class="q-stats-box">
+      <div class="stat-num">0</div>
+      <div class="stat-label">Answers</div>
+      <button class="skip-btn">Skip</button>
+    </div>
+  </div>
+
+  <div class="answers-grid">
+    <div class="answer-card red">
+      <div class="shape">▲</div>
+      <span class="answer-text">1888</span>
+    </div>
+    <div class="answer-card blue">
+      <div class="shape">◆</div>
+      <span class="answer-text">1905</span>
+    </div>
+    <div class="answer-card yellow">
+      <div class="shape">●</div>
+      <span class="answer-text">1912</span>
+    </div>
+    <div class="answer-card green">
+      <div class="shape">■</div>
+      <span class="answer-text">1942</span>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
