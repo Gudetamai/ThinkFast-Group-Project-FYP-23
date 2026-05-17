@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ThinkFast – Quiz Library</title>
+  <link href="https://fonts.googleapis.com/css2?family=Boogaloo&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="library.css">
+</head>
+<body>
+  <div class="blob blob-1"></div><div class="blob blob-2"></div><div class="blob blob-3"></div>
+
+  <nav class="navbar">
+    <a class="nav-logo" href="#"><div class="nav-logo-icon">⚡</div><span class="nav-logo-name">Think<span>Fast</span></span></a>
+    <div class="nav-right">
+      <span class="nav-badge">🎓 Teacher</span>
+      <button class="theme-btn" id="theme-btn" onclick="toggleTheme()">🌙</button>
+      <a class="nav-btn" href="questionbank.html">📝 Question Bank</a>
+      <a class="nav-btn" href="launchsession.html">🚀 Launch</a>
+      <a class="nav-btn" href="thinkfast-login.html">🚪 Log Out</a>
+    </div>
+  </nav>
+
+  <main class="main">
+    <div class="hero">
+      <div class="hero-text">
+        <h1>📚 Quiz <span>Library</span></h1>
+        <p>Your collection of quiz sets — create new quizzes, edit existing ones, duplicate favourites, and launch them directly from here.</p>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat"><div class="hero-stat-val" id="h-total">0</div><div class="hero-stat-lbl">Total Quizzes</div></div>
+        <div class="hero-stat"><div class="hero-stat-val" id="h-cats">0</div><div class="hero-stat-lbl">Categories</div></div>
+        <div class="hero-stat"><div class="hero-stat-val" id="h-qs">0</div><div class="hero-stat-lbl">Total Questions</div></div>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="search-wrap"><span class="icon">🔍</span><input type="text" id="search-input" placeholder="Search quizzes…" oninput="render()"></div>
+      <select class="filter-select" id="filter-diff" onchange="render()">
+        <option value="">All Difficulties</option>
+        <option>Easy</option><option>Medium</option><option>Hard</option>
+      </select>
+      <div class="view-toggle">
+        <button class="view-btn active" id="vbtn-grid" onclick="setView('grid')" title="Grid view">⊞</button>
+        <button class="view-btn" id="vbtn-list" onclick="setView('list')" title="List view">☰</button>
+      </div>
+      <button class="btn-new" onclick="openNew()">➕ New Quiz</button>
+    </div>
+
+    <div class="cat-tabs" id="cat-tabs"></div>
+    <div class="quiz-grid" id="quiz-grid"></div>
+    <div class="quiz-list hidden" id="quiz-list"></div>
+  </main>
+
+  <div class="overlay" id="form-overlay" onclick="overlayClick(event,'form-overlay')">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title" id="modal-title">➕ New Quiz</span>
+        <button class="modal-close" onclick="closeModal('form-overlay')">✕</button>
+      </div>
+      <div class="m-field"><label>Quiz Title *</label><input type="text" id="f-title" placeholder="e.g. Science Explorer" maxlength="60"></div>
+      <div class="m-field"><label>Description</label><textarea id="f-desc" rows="2" placeholder="Short description of this quiz…" maxlength="120"></textarea></div>
+      <div class="m-field"><label>Pick an Emoji Icon</label><div class="emoji-grid" id="emoji-grid"></div></div>
+      <div class="m-field">
+        <label>Category *</label>
+        <select id="f-cat">
+          <option>Technology</option><option>Science</option><option>Math</option>
+          <option>History</option><option>Language</option><option>General</option>
+          <option>Geography</option><option>Sports</option>
+        </select>
+      </div>
+      <div class="m-field">
+        <label>Difficulty *</label>
+        <div class="diff-pills">
+          <button class="diff-pill easy"   id="dp-easy"   onclick="setDiff('Easy')">🟢 Easy</button>
+          <button class="diff-pill medium" id="dp-medium" onclick="setDiff('Medium')">🔵 Medium</button>
+          <button class="diff-pill hard"   id="dp-hard"   onclick="setDiff('Hard')">🔴 Hard</button>
+        </div>
+      </div>
+      <div class="m-field"><label>Number of Questions</label><input type="number" id="f-qcount" min="1" max="50" value="10"></div>
+      <div class="modal-footer">
+        <button class="btn-cancel" onclick="closeModal('form-overlay')">Cancel</button>
+        <button class="btn-save" onclick="saveQuiz()">💾 Save Quiz</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="del-overlay" onclick="overlayClick(event,'del-overlay')">
+    <div class="modal del-modal">
+      <div class="del-icon">🗑️</div>
+      <h2>Delete Quiz?</h2>
+      <p>This will permanently delete the quiz and all its questions. This action cannot be undone.</p>
+      <div class="modal-footer" style="justify-content:center;gap:12px">
+        <button class="btn-cancel" onclick="closeModal('del-overlay')">Cancel</button>
+        <button class="btn-del-confirm" onclick="confirmDelete()">🗑️ Yes, Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const BANNER_COLORS=['#1a1a2e','#16213e','#1a2035','#1e1e3f','#221a2e','#1a2e2e'];
+    const EMOJIS=['💻','🔬','🔢','📖','🌍','🗣️','🎯','⚗️','🧠','🏆','🎨','🌱','🚀','🎵','🏛️','⚽'];
+    let quizzes=[
+      {id:1,emoji:'💻',title:'Web Development 101',  desc:'HTML, CSS, JavaScript fundamentals for beginners.',   category:'Technology',difficulty:'Easy',  questions:8, color:'#1a1a2e',created:'2 days ago'},
+      {id:2,emoji:'🔬',title:'Science Explorer',     desc:'Fun science questions covering biology and physics.',  category:'Science',   difficulty:'Medium',questions:10,color:'#16213e',created:'5 days ago'},
+      {id:3,emoji:'🔢',title:'Math Challenge',       desc:'Test your arithmetic and algebra skills.',             category:'Math',      difficulty:'Hard',  questions:6, color:'#1a2035',created:'1 week ago'},
+      {id:4,emoji:'📖',title:'History Trivia',       desc:'Journey through historical events and figures.',       category:'History',   difficulty:'Easy',  questions:12,color:'#1e1e3f',created:'1 week ago'},
+      {id:5,emoji:'🌍',title:'General Knowledge',    desc:'Mixed questions covering a wide range of topics.',     category:'General',   difficulty:'Medium',questions:15,color:'#221a2e',created:'2 weeks ago'},
+      {id:6,emoji:'🗣️',title:'Language & Grammar',   desc:'English grammar rules and vocabulary quiz.',           category:'Language',  difficulty:'Easy',  questions:9, color:'#1a2e2e',created:'2 weeks ago'},
+    ];
+    let nextId=7,editingId=null,deletingId=null,selectedEmoji='💻',selectedDiff='Easy',currentView='grid',currentCat='All',isLight=false;
+    const $=id=>document.getElementById(id);
+
+    function toggleTheme(){ isLight=!isLight; document.body.classList.toggle('light',isLight); $('theme-btn').textContent=isLight?'🌙':'☀️'; showToast(isLight?'☀️ Light mode on!':'🌙 Dark mode on!'); }
+
+    function updateHero(){ $('h-total').textContent=quizzes.length; $('h-cats').textContent=new Set(quizzes.map(q=>q.category)).size; $('h-qs').textContent=quizzes.reduce((s,q)=>s+q.questions,0); }
+
+    function updateCatTabs(){
+      const cats=['All',...new Set(quizzes.map(q=>q.category))];
+      $('cat-tabs').innerHTML=cats.map(c=>`<button class="cat-tab${c===currentCat?' active':''}" onclick="setCat('${c}')">${c==='All'?'⭐ All':c} ${c==='All'?'':quizzes.filter(q=>q.category===c).length}</button>`).join('');
+    }
+    function setCat(c){ currentCat=c; render(); }
+
+    function setView(v){
+      currentView=v;
+      ['grid','list'].forEach(x=>{ $('vbtn-'+x).classList.toggle('active',x===v); $('quiz-'+x).classList.toggle('hidden',x!==v); });
+    }
+
+    function render(){
+      const search=$('search-input').value.toLowerCase(), diff=$('filter-diff').value;
+      updateCatTabs();
+      const f=quizzes.filter(q=>(currentCat==='All'||q.category===currentCat)&&(!diff||q.difficulty===diff)&&(!search||q.title.toLowerCase().includes(search)||q.desc.toLowerCase().includes(search)||q.category.toLowerCase().includes(search)));
+      const empty=`<div class="empty-state"><div class="empty-icon">📭</div><p>${quizzes.length?'No quizzes match your filters.':'No quizzes yet — click ➕ New Quiz to get started!'}</p></div>`;
+      if(!f.length){ $('quiz-grid').innerHTML=$('quiz-list').innerHTML=empty; return; }
+      $('quiz-grid').innerHTML=f.map((q,i)=>`
+        <div class="quiz-card" style="animation-delay:${i*.06}s">
+          <div class="quiz-banner" style="background:${q.color}"><span class="quiz-banner-emoji">${q.emoji}</span></div>
+          <div class="quiz-body">
+            <div class="quiz-header"><div class="quiz-title">${esc(q.title)}</div><span class="quiz-badge badge-${q.difficulty.toLowerCase()}">${q.difficulty}</span></div>
+            <div class="quiz-desc">${esc(q.desc)}</div>
+            <div class="quiz-meta"><span>❓ ${q.questions} questions</span><span>🏷️ ${q.category}</span><span>🕐 ${q.created}</span></div>
+            <div class="quiz-actions">
+              <button class="qa-btn launch" onclick="launchQuiz(${q.id})">🚀 Launch</button>
+              <button class="qa-btn edit"   onclick="openEdit(${q.id})">✏️ Edit</button>
+              <button class="qa-btn dupe"   onclick="dupeQuiz(${q.id})">📋 Copy</button>
+              <button class="qa-btn del"    onclick="openDel(${q.id})">🗑️</button>
+            </div>
+          </div>
+        </div>`).join('');
+      $('quiz-list').innerHTML=f.map((q,i)=>`
+        <div class="quiz-row" style="animation-delay:${i*.05}s">
+          <div class="quiz-row-icon" style="background:${q.color}">${q.emoji}</div>
+          <div class="quiz-row-body"><div class="quiz-row-title">${esc(q.title)}</div><div class="quiz-row-meta"><span>❓ ${q.questions} Qs</span><span>🏷️ ${q.category}</span><span>⭐ ${q.difficulty}</span><span>🕐 ${q.created}</span></div></div>
+          <div class="quiz-row-actions">
+            <button class="icon-btn launch" onclick="launchQuiz(${q.id})">🚀</button>
+            <button class="icon-btn edit"   onclick="openEdit(${q.id})">✏️</button>
+            <button class="icon-btn dupe"   onclick="dupeQuiz(${q.id})">📋</button>
+            <button class="icon-btn del"    onclick="openDel(${q.id})">🗑️</button>
+          </div>
+        </div>`).join('');
+    }
+
+    const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const openModal=id=>$(id).classList.add('open');
+    const closeModal=id=>$(id).classList.remove('open');
+    function overlayClick(e,id){ if(e.target.id===id) closeModal(id); }
+
+    function buildEmojiGrid(){ $('emoji-grid').innerHTML=EMOJIS.map(e=>`<button class="emoji-opt${e===selectedEmoji?' selected':''}" onclick="pickEmoji('${e}',this)">${e}</button>`).join(''); }
+    function pickEmoji(e,btn){ selectedEmoji=e; document.querySelectorAll('.emoji-opt').forEach(b=>b.classList.remove('selected')); btn.classList.add('selected'); }
+    function setDiff(d){ selectedDiff=d; ['easy','medium','hard'].forEach(x=>{ $('dp-'+x).className='diff-pill '+x+(x===d.toLowerCase()?' sel-'+x:''); }); }
+    function clearForm(){ $('f-title').value=''; $('f-desc').value=''; $('f-cat').value='Technology'; $('f-qcount').value=10; selectedEmoji='💻'; selectedDiff='Easy'; buildEmojiGrid(); setDiff('Easy'); }
+
+    function openNew(){ editingId=null; clearForm(); $('modal-title').textContent='➕ New Quiz'; openModal('form-overlay'); }
+    function openEdit(id){
+      const q=quizzes.find(x=>x.id===id); if(!q) return;
+      editingId=id; $('modal-title').textContent='✏️ Edit Quiz';
+      $('f-title').value=q.title; $('f-desc').value=q.desc; $('f-cat').value=q.category; $('f-qcount').value=q.questions;
+      selectedEmoji=q.emoji; buildEmojiGrid(); setDiff(q.difficulty); openModal('form-overlay');
+    }
+    function saveQuiz(){
+      const title=$('f-title').value.trim(), desc=$('f-desc').value.trim(), cat=$('f-cat').value, qcount=parseInt($('f-qcount').value)||10;
+      if(!title) return showToast('⚠️ Please enter a quiz title!','error');
+      if(editingId){ Object.assign(quizzes.find(x=>x.id===editingId),{title,desc,category:cat,difficulty:selectedDiff,questions:qcount,emoji:selectedEmoji}); showToast('✅ Quiz updated!'); }
+      else { quizzes.push({id:nextId++,emoji:selectedEmoji,title,desc,category:cat,difficulty:selectedDiff,questions:qcount,color:BANNER_COLORS[Math.floor(Math.random()*BANNER_COLORS.length)],created:'Just now'}); showToast('🎉 Quiz created!'); }
+      closeModal('form-overlay'); updateHero(); render();
+    }
+    function dupeQuiz(id){ const q=quizzes.find(x=>x.id===id); if(!q) return; quizzes.push({...q,id:nextId++,title:'Copy of '+q.title,created:'Just now'}); updateHero(); render(); showToast('📋 Quiz duplicated!'); }
+    function openDel(id){ deletingId=id; openModal('del-overlay'); }
+    function confirmDelete(){ quizzes=quizzes.filter(q=>q.id!==deletingId); deletingId=null; closeModal('del-overlay'); updateHero(); render(); showToast('🗑️ Quiz deleted.','warn'); }
+    function launchQuiz(id){ const q=quizzes.find(x=>x.id===id); if(!q) return; showToast('🚀 Launching "'+q.title+'"… Redirecting!'); setTimeout(()=>{window.location.href='launchsession.html';},1400); }
+    function showToast(msg,type=''){ const t=$('toast'); t.textContent=msg; t.className='toast'+(type?' '+type:''); t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3000); }
+
+    updateHero(); render();
+  </script>
+</body>
+</html>
