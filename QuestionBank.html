@@ -36,7 +36,6 @@
     <div class="stats-row">
       <div class="stat-card"><div class="stat-icon yellow">📝</div><div><div class="stat-val" id="stat-total">0</div><div class="stat-lbl">Total Questions</div></div></div>
       <div class="stat-card"><div class="stat-icon blue">🔵</div><div><div class="stat-val" id="stat-mc">0</div><div class="stat-lbl">Multiple Choice</div></div></div>
-      <div class="stat-card"><div class="stat-icon green">✅</div><div><div class="stat-val" id="stat-cats">0</div><div class="stat-lbl">Categories</div></div></div>
       <div class="stat-card"><div class="stat-icon red">🖼️</div><div><div class="stat-val" id="stat-img">0</div><div class="stat-lbl">With Images</div></div></div>
     </div>
 
@@ -120,7 +119,6 @@
       if (data) {
         questions = data;
         updateStats();
-        updateCatFilter();
         renderList();
       }
     }
@@ -207,7 +205,6 @@
 
     function renderList() {
       const search = $('search-input').value.toLowerCase();
-      const cat = $('filter-cat').value;
       const list = $('q-list');
       const filtered = questions.filter(q => (q.question_text.toLowerCase().includes(search)));
       
@@ -248,7 +245,7 @@
     async function openBulkSave() {
       const title = prompt("New Quiz Set Title:");
       if (!title) return;
-      const { data: quiz, error } = await sbClient.from('quizzes').insert([{ title, teacher_id: teacherId }]).select().single();
+      const { data, error } = await sbClient.from('quizzes').select('*').eq('teacher_id', teacherId).is('quiz_id', null); // Use .is() for NULL checks
       if (error) return;
       await sbClient.from('questions').update({ quiz_id: quiz.id }).in('id', selectedIds);
       window.location.href = 'library.html';
