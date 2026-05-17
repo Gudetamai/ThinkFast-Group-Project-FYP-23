@@ -42,7 +42,6 @@
 
     <div class="toolbar">
       <div class="search-wrap"><span class="icon">🔍</span><input type="text" id="search-input" placeholder="Search questions…" oninput="renderList()"></div>
-      <select class="filter-select" id="filter-cat" onchange="renderList()"><option value="">All Categories</option></select>
       <button class="btn-add" onclick="openAdd()">➕ Add Question</button>
     </div>
 
@@ -57,8 +56,6 @@
       </div>
       <div class="m-field"><label>Question Text *</label><textarea id="f-question" rows="3" placeholder="Type your question here…"></textarea></div>
       <div class="m-field">
-        <label>Category</label>
-        <select id="f-category">
           <option>General</option><option>Science</option><option>Math</option>
           <option>History</option><option>Technology</option><option>Language</option>
         </select>
@@ -103,6 +100,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="app.js"></script>
+
   <script>
     const teacherId = localStorage.getItem('teacher_id');
     if (!teacherId) window.location.href = 'index.html';
@@ -124,7 +122,7 @@
 
       if (data) {
         questions = data;
-        updateStats();s
+        updateStats();
         updateCatFilter();
         renderList();
       }
@@ -133,7 +131,6 @@
     async function saveQuestion() {
       const text = $('f-question').value.trim();
       const choices = [$('f-a').value.trim(), $('f-b').value.trim(), $('f-c').value.trim(), $('f-d').value.trim()];
-      const cat = $('f-category').value;
       const img = $('f-img').value.trim();
 
       if (!text || choices.some(c => !c) || !selectedCorrect) {
@@ -144,7 +141,6 @@
         question_text: text,
         choices: choices,
         correct_answer: selectedCorrect,
-        category: cat,
         image_url: img,
         teacher_id: teacherId
       };
@@ -185,7 +181,6 @@
       editingId = id;
       $('modal-title').textContent = '✏️ Edit Question';
       $('f-question').value = q.question_text;
-      $('f-category').value = q.category;
       ['a','b','c','d'].forEach((l,i) => $('f-'+l).value = q.choices[i]);
       $('f-img').value = q.image_url;
       selectCorrect(q.correct_answer);
@@ -201,7 +196,6 @@
 
     function clearForm() {
       ['f-question','f-a','f-b','f-c','f-d','f-img'].forEach(id => $(id).value = '');
-      $('f-category').value = 'General';
       selectCorrect('');
     }
 
@@ -211,31 +205,20 @@
 
     function updateStats() {
       $('stat-total').textContent = questions.length;
-      $('stat-cats').textContent = new Set(questions.map(q => q.category)).size;
       $('stat-img').textContent = questions.filter(q => q.image_url).length;
-    }
-
-    function updateCatFilter() {
-      const sel = $('filter-cat'), cur = sel.value;
-      sel.innerHTML = '<option value="">All Categories</option>';
-      [...new Set(questions.map(q => q.category))].sort().forEach(c => {
-        const o = document.createElement('option');
-        o.value = o.textContent = c; if(c === cur) o.selected = true; sel.appendChild(o);
-      });
     }
 
     function renderList() {
       const search = $('search-input').value.toLowerCase();
       const cat = $('filter-cat').value;
       const list = $('q-list');
-      const filtered = questions.filter(q => (!cat || q.category === cat) && (!search || q.question_text.toLowerCase().includes(search)));
+      const filtered = questions.filter(q => (q.question_text.toLowerCase().includes(search)));
       
       list.innerHTML = filtered.map(q => `
         <div class="q-card ${selectedIds.includes(q.id) ? 'selected' : ''}">
           <div class="q-select"><input type="checkbox" onchange="toggleSelect('${q.id}')" ${selectedIds.includes(q.id)?'checked':''}></div>
           <div class="q-body">
             <div class="q-text">${esc(q.question_text)}</div>
-            <div class="q-meta"><span class="q-tag">${esc(q.category)}</span></div>
           </div>
           <div class="q-actions">
             <button class="action-btn edit" onclick="openEdit('${q.id}')">✏️</button>
