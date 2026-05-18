@@ -96,7 +96,7 @@
         }
 
         // Fetch session details from Supabase
-        const { data: session } = await supabase
+        const { data: session } = await sbClient
             .from('game_sessions')
             .select('*, quizzes(title, question_count)')
             .eq('id', sessionId)
@@ -113,7 +113,7 @@
 
     // Realtime Listener: Detects when an ESP32 connects to the database
     function subscribeToHardware() {
-        supabase
+        sbClient
             .channel('lobby-updates')
             .on('postgres_changes', { 
                 event: 'INSERT', 
@@ -134,7 +134,7 @@
 
         if (studentIdInput && currentTeacherId) {
             // Filter by 'teacher_id' to ensure the teacher can't link a student that doesn't belong to their profile.
-            const { data: student, error } = await supabase
+            const { data: student, error } = await sbClient
                 .from('students')
                 .select('id, student_name, student_code') // Display student_code too to help teachers identify the correct student
                 .eq('student_code', studentIdInput) // filter by student_code instead of uuid for better, easier UX
@@ -147,7 +147,7 @@
             }
 
             // Update participant record with the student's ID
-            await supabase
+            await sbClient
                 .from('session_participants')
                 .update({ student_id: student.id })
                 .eq('id', participantRowId);
@@ -181,7 +181,7 @@
     async function endSession() {
         if (confirm("Are you sure you want to end this session? All progress will be saved.")) {
             // Update the session status in Supabase
-            await supabase
+            await sbClient
                 .from('game_sessions')
                 .update({ status: 'finished' })
                 .eq('id', sessionId);
