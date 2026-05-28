@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ThinkFast – Remote Assignment</title>
+  <link href="https://fonts.googleapis.com/css2?family=Boogaloo&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="remoteassign.css">
+</head>
+<body>
+
+  <div class="blob blob-1"></div><div class="blob blob-2"></div><div class="blob blob-3"></div>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a class="nav-logo" href="#"><div class="nav-logo-icon">⚡</div><span class="nav-logo-name">Think<span>Fast</span></span></a>
+    <div class="nav-right">
+      <span class="nav-badge">🎓 Teacher</span>
+      <button class="theme-btn" id="theme-btn" onclick="toggleTheme()">🌙</button>
+      <a class="nav-btn" href="launchsession.html">🚀 Launch Session</a>
+      <a class="nav-btn" href="thinkfast-login.html">🚪 Log Out</a>
+    </div>
+  </nav>
+
+  <main class="main">
+
+    <!-- Header -->
+    <div class="page-header">
+      <h1>🎮 Remote <span>Assignment</span></h1>
+      <p>Decide whether to assign student names to physical ESP32 remotes, or let students use them freely.</p>
+    </div>
+
+    <!-- Master toggle -->
+    <div class="toggle-card" id="toggle-card">
+      <div class="toggle-info">
+        <div class="toggle-icon" id="toggle-icon">🎮</div>
+        <div>
+          <div class="toggle-title">Assign Students to Remotes</div>
+          <div class="toggle-desc" id="toggle-desc">Currently in <strong>Free Mode</strong> — students can pick up any remote and play without a name attached. Turn this on to link each remote to a specific student name.</div>
+        </div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="assign-toggle" onchange="onToggleChange()">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <!-- Mode badge -->
+    <div class="mode-badge free" id="mode-badge">🔓 Free Mode — No Assignment</div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-pill"><div class="stat-pill-icon yellow">🎮</div><div><div class="stat-pill-val" id="stat-remotes">8</div><div class="stat-pill-lbl">Total Remotes</div></div></div>
+      <div class="stat-pill"><div class="stat-pill-icon green">✅</div><div><div class="stat-pill-val" id="stat-assigned">0</div><div class="stat-pill-lbl">Assigned</div></div></div>
+      <div class="stat-pill"><div class="stat-pill-icon blue">⏳</div><div><div class="stat-pill-val" id="stat-unassigned">8</div><div class="stat-pill-lbl">Unassigned</div></div></div>
+      <div class="stat-pill"><div class="stat-pill-icon red">👥</div><div><div class="stat-pill-val" id="stat-students">6</div><div class="stat-pill-lbl">Students</div></div></div>
+    </div>
+
+    <!-- FREE MODE panel -->
+    <div id="free-panel">
+      <div class="free-mode-panel">
+        <div class="free-mode-icon">🔓</div>
+        <h2>Free Mode is Active</h2>
+        <p>Students can pick up any available remote controller and start playing. No names are tracked per remote — scores will be shown by remote number only.</p>
+        <button class="btn-proceed" onclick="proceedFree()">🚀 Proceed to Launch &nbsp;→</button>
+      </div>
+    </div>
+
+    <!-- ASSIGN MODE panel -->
+    <div id="assign-panel" style="display:none">
+
+      <div class="assign-hint">
+        <div class="assign-hint-icon">💡</div>
+        <div><strong>How it works:</strong> Click a remote on the left to select it, then click a student's name on the right to link them. The remote will show the student's name during the quiz. You can unassign at any time.</div>
+      </div>
+
+      <div class="section-label">① Select Remote &amp; Assign Student</div>
+
+      <div class="assignment-layout">
+
+        <!-- Remote grid -->
+        <div>
+          <div class="section-label" style="margin-bottom:12px">🎮 Physical Remotes</div>
+          <div class="remote-grid" id="remote-grid"></div>
+        </div>
+
+        <!-- Student panel -->
+        <div class="student-panel">
+          <div class="student-panel-title">👥 Student List</div>
+
+          <div class="student-search-wrap">
+            <span class="icon">🔍</span>
+            <input type="text" id="student-search" placeholder="Search students…" oninput="renderStudents()">
+          </div>
+
+          <div class="student-list" id="student-list"></div>
+
+          <div class="add-student-row">
+            <input type="text" class="add-student-input" id="new-student-input" placeholder="Add student name…" maxlength="30" onkeydown="if(event.key==='Enter')addStudent()">
+            <button class="btn-add-student" onclick="addStudent()">➕ Add</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Assignment table -->
+      <div class="section-label">② Assignment Summary</div>
+      <div class="assign-table-wrap">
+        <table class="assign-table">
+          <thead>
+            <tr>
+              <th>Remote</th>
+              <th>Student Name</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="assign-tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- Action bar -->
+      <div class="action-bar">
+        <button class="btn-clear" onclick="clearAll()">🗑️ Clear All Assignments</button>
+        <button class="btn-proceed" onclick="proceedAssigned()">💾 Save &amp; Proceed to Launch &nbsp;→</button>
+      </div>
+
+    </div>
+
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const REMOTE_ICONS = ['🔴','🔵','🟡','🟢','🟣','🟠','⚪','🟤'];
+    const AVATAR_COLORS = ['var(--yellow)','var(--red)','var(--blue)','var(--green)','var(--purple)','var(--orange)'];
+    const TOTAL_REMOTES = 8;
+
+    let assignMode = false;
+    let selectedRemote = null;
+    let isLight = false;
+
+    let remotes = Array.from({length: TOTAL_REMOTES}, (_,i) => ({
+      id: i + 1,
+      label: 'Remote ' + (i + 1),
+      icon: REMOTE_ICONS[i],
+      student: null
+    }));
+
+    let students = [
+      {id:1, name:'Wan Maisarah',  color:'var(--yellow)'},
+      {id:2, name:'Nur Qumairah', color:'var(--blue)'},
+      {id:3, name:'Syed Hassan',  color:'var(--green)'},
+      {id:4, name:'Nuryn Azalea', color:'var(--purple)'},
+      {id:5, name:'Ahmad Faiz',   color:'var(--red)'},
+      {id:6, name:'Aisyah Nur',   color:'var(--orange)'},
+    ];
+    let nextStudentId = 7;
+
+    const $ = id => document.getElementById(id);
+
+    /* Theme */
+    function toggleTheme() {
+      isLight = !isLight;
+      document.body.classList.toggle('light', isLight);
+      $('theme-btn').textContent = isLight ? '🌙' : '☀️';
+      showToast(isLight ? '☀️ Light mode on!' : '🌙 Dark mode on!');
+    }
+
+    /* Toggle change */
+    function onToggleChange() {
+      assignMode = $('assign-toggle').checked;
+      $('toggle-card').classList.toggle('enabled', assignMode);
+      $('toggle-icon').textContent = assignMode ? '🔒' : '🎮';
+      $('toggle-desc').innerHTML = assignMode
+        ? 'Currently in <strong>Assigned Mode</strong> — each remote will be linked to a specific student. Select a remote then click a student to assign.'
+        : 'Currently in <strong>Free Mode</strong> — students can pick up any remote and play without a name attached. Turn this on to link each remote to a specific student name.';
+
+      const badge = $('mode-badge');
+      badge.className = 'mode-badge ' + (assignMode ? 'assigned' : 'free');
+      badge.textContent = assignMode ? '🔒 Assigned Mode — Name Tracking On' : '🔓 Free Mode — No Assignment';
+
+      $('free-panel').style.display   = assignMode ? 'none'  : 'block';
+      $('assign-panel').style.display = assignMode ? 'block' : 'none';
+
+      if (assignMode) { renderRemotes(); renderStudents(); renderTable(); }
+      showToast(assignMode ? '🔒 Assigned mode enabled!' : '🔓 Switched to free mode.', assignMode ? '' : 'warn');
+    }
+
+    /* Render remotes */
+    function renderRemotes() {
+      $('remote-grid').innerHTML = remotes.map((r, i) => {
+        const isSelected = selectedRemote === r.id;
+        const isAssigned = !!r.student;
+        let cls = 'remote-card';
+        if (isSelected) cls += ' selected';
+        else if (isAssigned) cls += ' assigned';
+        return `
+          <div class="${cls}" style="animation-delay:${i * .04}s" onclick="selectRemote(${r.id})">
+            <div class="remote-check">✓</div>
+            <div class="remote-icon">${r.icon}</div>
+            <div class="remote-id">${r.label}</div>
+            <div class="remote-status ${isSelected ? 'selected' : isAssigned ? 'assigned' : 'free'}">
+              ${isSelected ? '● Selected' : isAssigned ? '● Assigned' : '○ Free'}
+            </div>
+            ${isAssigned ? `<div class="remote-student-name">${esc(r.student)}</div>` : ''}
+          </div>`;
+      }).join('');
+    }
+
+    /* Render students */
+    function renderStudents() {
+      const search = ($('student-search') ? $('student-search').value : '').toLowerCase();
+      const assignedNames = remotes.filter(r => r.student).map(r => r.student);
+      const filtered = students.filter(s => !search || s.name.toLowerCase().includes(search));
+
+      $('student-list').innerHTML = filtered.length ? filtered.map(s => {
+        const isAssigned = assignedNames.includes(s.name);
+        return `
+          <div class="student-item ${isAssigned ? 'assigned' : ''}" onclick="${isAssigned ? '' : 'assignStudent(' + s.id + ')'}">
+            <div class="student-avatar" style="background:${s.color}">${s.name.charAt(0)}</div>
+            <span class="student-name">${esc(s.name)}</span>
+            <span class="student-tag ${isAssigned ? 'assigned' : 'free'}">${isAssigned ? '✅ Assigned' : '+ Assign'}</span>
+          </div>`;
+      }).join('') : `<div style="color:var(--muted);font-size:.82rem;padding:16px 0;text-align:center">No students found</div>`;
+    }
+
+    /* Render assignment table */
+    function renderTable() {
+      const assigned = remotes.filter(r => r.student);
+      if (!assigned.length) {
+        $('assign-tbody').innerHTML = `<tr class="empty-row"><td colspan="4">📋 No assignments yet — select a remote and a student to get started.</td></tr>`;
+      } else {
+        $('assign-tbody').innerHTML = assigned.map(r => {
+          const s = students.find(x => x.name === r.student);
+          return `
+            <tr>
+              <td><span class="remote-badge">${r.icon} ${r.label}</span></td>
+              <td><div style="display:flex;align-items:center;gap:8px"><div class="student-avatar" style="background:${s ? s.color : 'var(--muted)'};width:24px;height:24px;border-radius:6px;font-size:.75rem">${r.student.charAt(0)}</div>${esc(r.student)}</div></td>
+              <td><span class="student-tag assigned">✅ Assigned</span></td>
+              <td><button class="unassign-btn" onclick="unassign(${r.id})">✕ Unassign</button></td>
+            </tr>`;
+        }).join('');
+      }
+      updateStats();
+    }
+
+    /* Select remote */
+    function selectRemote(id) {
+      selectedRemote = selectedRemote === id ? null : id;
+      renderRemotes();
+      if (selectedRemote) showToast('🎮 ' + remotes.find(r => r.id === id).label + ' selected — now pick a student →');
+    }
+
+    /* Assign student to selected remote */
+    function assignStudent(studentId) {
+      if (!selectedRemote) { showToast('⚠️ Please select a remote first!', 'error'); return; }
+      const remote  = remotes.find(r => r.id === selectedRemote);
+      const student = students.find(s => s.id === studentId);
+      if (!remote || !student) return;
+      if (remotes.some(r => r.student === student.name && r.id !== selectedRemote)) {
+        showToast('⚠️ ' + student.name + ' is already assigned to another remote!', 'error'); return;
+      }
+      remote.student = student.name;
+      selectedRemote = null;
+      renderRemotes(); renderStudents(); renderTable();
+      showToast('✅ ' + student.name + ' → ' + remote.label);
+    }
+
+    /* Unassign */
+    function unassign(remoteId) {
+      const r = remotes.find(x => x.id === remoteId);
+      if (!r) return;
+      const name = r.student; r.student = null;
+      if (selectedRemote === remoteId) selectedRemote = null;
+      renderRemotes(); renderStudents(); renderTable();
+      showToast('🔓 ' + name + ' unassigned from ' + r.label, 'warn');
+    }
+
+    /* Add student */
+    function addStudent() {
+      const input = $('new-student-input');
+      const name  = input.value.trim();
+      if (!name) return showToast('⚠️ Enter a student name!', 'error');
+      if (students.some(s => s.name.toLowerCase() === name.toLowerCase())) return showToast('⚠️ Student already exists!', 'error');
+      students.push({ id: nextStudentId++, name, color: AVATAR_COLORS[(students.length) % AVATAR_COLORS.length] });
+      input.value = '';
+      renderStudents(); updateStats();
+      showToast('👤 ' + name + ' added!');
+    }
+
+    /* Clear all */
+    function clearAll() {
+      if (!remotes.some(r => r.student)) return showToast('⚠️ Nothing to clear!', 'warn');
+      remotes.forEach(r => r.student = null);
+      selectedRemote = null;
+      renderRemotes(); renderStudents(); renderTable();
+      showToast('🗑️ All assignments cleared.', 'warn');
+    }
+
+    /* Stats */
+    function updateStats() {
+      const assigned = remotes.filter(r => r.student).length;
+      $('stat-assigned').textContent   = assigned;
+      $('stat-unassigned').textContent = TOTAL_REMOTES - assigned;
+      $('stat-students').textContent   = students.length;
+    }
+
+    /* Proceed */
+    function proceedFree()     { showToast('🚀 Launching in free mode…'); setTimeout(() => window.location.href = 'launchsession.html', 1400); }
+    function proceedAssigned() {
+      const assigned = remotes.filter(r => r.student).length;
+      if (!assigned) { showToast('⚠️ No remotes assigned yet! Assign students or use free mode.', 'error'); return; }
+      showToast('💾 Assignments saved! Launching session…');
+      setTimeout(() => window.location.href = 'launchsession.html', 1400);
+    }
+
+    /* Helpers */
+    const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    function showToast(msg, type = '') {
+      const t = $('toast'); t.textContent = msg;
+      t.className = 'toast' + (type ? ' ' + type : ''); t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    updateStats();
+  </script>
+</body>
+</html>
