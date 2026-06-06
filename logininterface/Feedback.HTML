@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ThinkFast – Answer Feedback</title>
+  <link href="https://fonts.googleapis.com/css2?family=Boogaloo&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="feedback.css">
+</head>
+<body>
+
+  <canvas id="confetti-canvas"></canvas>
+  <div class="blob blob-1"></div><div class="blob blob-2"></div><div class="blob blob-3"></div>
+
+  <!-- Ring burst (injected by JS) -->
+  <div class="ring-burst" id="ring-burst"></div>
+
+  <!-- Feedback overlay -->
+  <div class="feedback-overlay" id="feedback-overlay">
+    <div class="result-badge">
+      <div class="result-icon" id="result-icon">✅</div>
+      <div class="result-word" id="result-word">Correct!</div>
+      <div class="result-sub" id="result-sub">That's the right answer!</div>
+      <div class="result-pts" id="result-pts">+100 pts</div>
+      <button class="result-next-btn" onclick="closeOverlay()">Next Question ➡️</button>
+    </div>
+  </div>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a class="nav-logo" href="#"><div class="nav-logo-icon">⚡</div><span class="nav-logo-name">Think<span>Fast</span></span></a>
+    <div class="nav-right">
+      <span class="nav-badge">🎓 Teacher</span>
+      <button class="theme-btn" id="theme-btn" onclick="toggleTheme()">🌙</button>
+      <a class="nav-btn" href="launchsession.html">🚀 Session</a>
+      <a class="nav-btn" href="thinkfast-login.html">🚪 Log Out</a>
+    </div>
+  </nav>
+
+  <main class="main">
+    <div class="page-header">
+      <h1>⚡ Answer <span>Feedback</span></h1>
+      <p>Reveal the correct answer and see live student results — green means correct, red means wrong!</p>
+    </div>
+
+    <!-- Question card -->
+    <div class="question-card">
+      <div class="q-header">
+        <span class="q-num-badge" id="q-num-badge">Question 1 of 5</span>
+        <div class="q-timer">
+          <span id="timer-val">20</span>s
+          <div class="q-timer-bar"><div class="q-timer-fill" id="timer-fill" style="width:100%"></div></div>
+        </div>
+      </div>
+      <div class="q-text" id="q-text">Loading question…</div>
+      <div class="choices-grid" id="choices-grid"></div>
+    </div>
+
+    <!-- Teacher controls -->
+    <div class="controls-row">
+      <button class="ctrl-btn reveal" id="btn-reveal" onclick="revealAnswer()">🔍 Reveal Answer</button>
+      <button class="ctrl-btn next"   id="btn-next"   onclick="nextQuestion()" disabled>➡️ Next Question</button>
+      <button class="ctrl-btn end"    id="btn-end"    onclick="endQuiz()">🛑 End Quiz</button>
+    </div>
+
+    <!-- Teacher live panel -->
+    <div class="teacher-panel">
+      <div class="panel-header">
+        <span class="panel-title">👥 Student Responses</span>
+        <span class="live-dot" id="live-status">Waiting for answers</span>
+      </div>
+
+      <div class="result-stats">
+        <div class="res-stat correct-stat"><span class="res-icon">✅</span><div><div class="res-val" id="count-correct">0</div><div class="res-lbl">Correct</div></div></div>
+        <div class="res-stat wrong-stat">  <span class="res-icon">❌</span><div><div class="res-val" id="count-wrong">0</div><div class="res-lbl">Wrong</div></div></div>
+        <div class="res-stat pending-stat"><span class="res-icon">⏳</span><div><div class="res-val" id="count-pending">0</div><div class="res-lbl">Pending</div></div></div>
+      </div>
+
+      <div class="answer-bar">
+        <div class="bar-correct" id="bar-correct" style="width:0%"></div>
+        <div class="bar-wrong"   id="bar-wrong"   style="width:0%"></div>
+      </div>
+
+      <div class="students-grid" id="students-grid"></div>
+    </div>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const QUESTIONS = [
+      { text:'What does HTML stand for?', choices:['HyperText Markup Language','High Tech Modern Language','HyperTool Making Links','Home Text Marking Language'], correct:0 },
+      { text:'Which planet is known as the Red Planet?', choices:['Venus','Jupiter','Mars','Saturn'], correct:2 },
+      { text:'What is 12 × 12?', choices:['124','144','142','148'], correct:1 },
+      { text:'Who wrote Romeo and Juliet?', choices:['Charles Dickens','William Shakespeare','Jane Austen','Leo Tolstoy'], correct:1 },
+      { text:'What does CSS stand for?', choices:['Creative Style Sheets','Cascading Style Sheets','Computer Style System','Colorful Style Scripts'], correct:1 },
+    ];
+    const STUDENTS = [
+      {name:'Maisarah', avatar:'🦊', color:'var(--yellow)'},
+      {name:'Qumairah', avatar:'🐯', color:'var(--red)'},
+      {name:'Hassan',   avatar:'🦁', color:'var(--blue)'},
+      {name:'Azalea',   avatar:'🌸', color:'var(--purple)'},
+      {name:'Ahmad',    avatar:'🐺', color:'var(--green)'},
+      {name:'Faiz',     avatar:'🐸', color:'var(--orange)'},
+    ];
+    const CHIP_COLORS = ['var(--yellow)','var(--red)','var(--blue)','var(--green)','var(--purple)'];
+    const LABELS = ['A','B','C','D'];
+    const PIPS   = ['a','b','c','d'];
+
+    let currentQ = 0, revealed = false, timerVal = 20, timerInterval = null;
+    let studentAnswers = [];
+    let isLight = false;
+    const $ = id => document.getElementById(id);
+
+    /* ── Theme ── */
+    function toggleTheme() {
+      isLight = !isLight;
+      document.body.classList.toggle('light', isLight);
+      $('theme-btn').textContent = isLight ? '🌙' : '☀️';
+      showToast(isLight ? '☀️ Light mode on!' : '🌙 Dark mode on!');
+    }
+
+    /* ── Load question ── */
+    function loadQuestion() {
+      const q = QUESTIONS[currentQ];
+      revealed = false;
+      studentAnswers = [];
+      $('btn-reveal').disabled = false;
+      $('btn-next').disabled = true;
+      $('q-num-badge').textContent = `Question ${currentQ + 1} of ${QUESTIONS.length}`;
+      $('q-text').textContent = q.text;
+      $('live-status').textContent = 'Waiting for answers';
+
+      $('choices-grid').innerHTML = q.choices.map((c, i) => `
+        <button class="choice-btn ${['a','b','c','d'][i]}-btn" id="choice-${i}" onclick="selectChoice(${i})">
+          <div class="choice-pip ${PIPS[i]}">${LABELS[i]}</div>${c}
+        </button>`).join('');
+
+      resetStats();
+      renderStudents();
+      startTimer();
+      simulateAnswers();
+    }
+
+    /* ── Timer ── */
+    function startTimer() {
+      timerVal = 20;
+      clearInterval(timerInterval);
+      updateTimer();
+      timerInterval = setInterval(() => {
+        timerVal--;
+        updateTimer();
+        if (timerVal <= 0) { clearInterval(timerInterval); autoReveal(); }
+      }, 1000);
+    }
+    function updateTimer() {
+      $('timer-val').textContent = timerVal;
+      const pct = (timerVal / 20) * 100;
+      $('timer-fill').style.width = pct + '%';
+      $('timer-fill').classList.toggle('urgent', timerVal <= 7);
+    }
+    function autoReveal() { if (!revealed) revealAnswer(); }
+
+    /* ── Simulate student answers (demo) ── */
+    function simulateAnswers() {
+      const q = QUESTIONS[currentQ];
+      STUDENTS.forEach((s, i) => {
+        const delay = 1500 + i * 900;
+        setTimeout(() => {
+          if (revealed) return;
+          const isCorrect = Math.random() > 0.4;
+          const answer = isCorrect ? q.correct : (q.correct + 1 + Math.floor(Math.random() * 3)) % 4;
+          studentAnswers.push({ ...s, answer, correct: answer === q.correct });
+          updateStats();
+          renderStudents(false);
+        }, delay);
+      });
+    }
+
+    /* ── Stats ── */
+    function resetStats() {
+      $('count-correct').textContent = 0;
+      $('count-wrong').textContent   = 0;
+      $('count-pending').textContent = STUDENTS.length;
+      $('bar-correct').style.width   = '0%';
+      $('bar-wrong').style.width     = '0%';
+    }
+    function updateStats() {
+      const total = STUDENTS.length;
+      const correct = studentAnswers.filter(s => s.correct).length;
+      const wrong   = studentAnswers.filter(s => !s.correct).length;
+      const pending = total - studentAnswers.length;
+      $('count-correct').textContent = correct;
+      $('count-wrong').textContent   = wrong;
+      $('count-pending').textContent = pending;
+      $('bar-correct').style.width   = (correct / total * 100) + '%';
+      $('bar-wrong').style.width     = (wrong   / total * 100) + '%';
+      $('live-status').textContent   = studentAnswers.length + '/' + total + ' answered';
+    }
+
+    /* ── Render students ── */
+    function renderStudents(showResult = false) {
+      const answered = studentAnswers.map(s => s.name);
+      $('students-grid').innerHTML = STUDENTS.map((s, i) => {
+        const ans = studentAnswers.find(a => a.name === s.name);
+        const state = !ans ? 's-pending' : ans.correct ? 's-correct' : 's-wrong';
+        const icon  = !ans ? '⏳' : ans.correct ? '✅' : '❌';
+        const resultIcon = (showResult && ans) ? `<span class="s-result-icon">${icon}</span>` : (!ans ? `<span class="s-result-icon">⏳</span>` : `<span class="s-result-icon">📝</span>`);
+        return `<div class="student-chip ${showResult ? state : (ans ? '' : 's-pending')}" style="animation-delay:${i*.05}s">
+          <div class="s-avatar" style="background:${s.color}">${s.avatar}</div>${s.name}${resultIcon}
+        </div>`;
+      }).join('');
+    }
+
+    /* ── Teacher selects choice (preview) ── */
+    function selectChoice(idx) {
+      if (revealed) return;
+      document.querySelectorAll('.choice-btn').forEach(b => b.style.opacity = '1');
+      document.querySelectorAll('.choice-btn').forEach(b => b.style.borderColor = '');
+    }
+
+    /* ── Reveal answer ── */
+    function revealAnswer() {
+      if (revealed) return;
+      revealed = true;
+      clearInterval(timerInterval);
+      $('timer-fill').style.width = '0%';
+      $('btn-reveal').disabled = true;
+      $('btn-next').disabled   = false;
+      $('live-status').textContent = 'Answer revealed!';
+
+      const q = QUESTIONS[currentQ];
+      const correctIdx = q.correct;
+
+      document.querySelectorAll('.choice-btn').forEach((btn, i) => {
+        btn.classList.add('disabled');
+        if (i === correctIdx) btn.classList.add('correct-choice');
+        else btn.classList.add('wrong-choice');
+      });
+
+      updateStats();
+      renderStudents(true);
+
+      const correctCount = studentAnswers.filter(s => s.correct).length;
+      const majority = correctCount >= STUDENTS.length / 2;
+      showFeedback(majority);
+    }
+
+    /* ── Show feedback overlay ── */
+    function showFeedback(isCorrect) {
+      const overlay = $('feedback-overlay');
+      overlay.className = 'feedback-overlay show ' + (isCorrect ? 'correct-overlay' : 'wrong-overlay');
+      $('result-icon').textContent  = isCorrect ? '🎉' : '💥';
+      $('result-word').textContent  = isCorrect ? 'Correct!' : 'Wrong!';
+      $('result-word').className    = 'result-word ' + (isCorrect ? 'correct' : 'wrong');
+      $('result-sub').textContent   = isCorrect
+        ? `${studentAnswers.filter(s=>s.correct).length} of ${STUDENTS.length} students got it right!`
+        : `Only ${studentAnswers.filter(s=>s.correct).length} of ${STUDENTS.length} students got it right.`;
+      $('result-pts').textContent   = isCorrect ? '+100 pts for correct answers!' : 'Better luck next question!';
+      $('result-pts').style.display = 'block';
+
+      spawnRings(isCorrect);
+      if (isCorrect) launchConfetti();
+    }
+    function closeOverlay() { $('feedback-overlay').className = 'feedback-overlay'; $('ring-burst').innerHTML = ''; }
+
+    /* ── Ring burst ── */
+    function spawnRings(isCorrect) {
+      const rb = $('ring-burst');
+      rb.innerHTML = '';
+      for (let i = 1; i <= 3; i++) {
+        const r = document.createElement('div');
+        r.className = `ring ${isCorrect ? '' : 'ring-wrong-' + i}`;
+        if (isCorrect) r.classList.add('ring-' + i);
+        rb.appendChild(r);
+      }
+      setTimeout(() => { rb.innerHTML = ''; }, 1200);
+    }
+
+    /* ── Confetti ── */
+    function launchConfetti() {
+      const canvas = $('confetti-canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width  = window.innerWidth;
+      canvas.height = window.innerHeight;
+      const COLORS = ['#f9c700','#1fd685','#3d8eff','#ff3d5a','#a855f7','#ff8c42'];
+      const pieces = Array.from({length:140}, () => ({
+        x: Math.random() * canvas.width,
+        y: Math.random() * -canvas.height,
+        r: 5 + Math.random() * 7,
+        d: 2 + Math.random() * 4,
+        color: COLORS[Math.floor(Math.random() * COLORS.length)],
+        tilt: Math.random() * 10 - 5,
+        tiltSpeed: 0.1 + Math.random() * 0.2,
+        angle: 0, shape: Math.random() > .5 ? 'rect' : 'circle',
+      }));
+      let frame = 0;
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        pieces.forEach(p => {
+          ctx.beginPath();
+          ctx.fillStyle = p.color;
+          if (p.shape === 'circle') {
+            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          } else {
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.angle);
+            ctx.fillRect(-p.r, -p.r / 2, p.r * 2, p.r);
+            ctx.restore();
+          }
+          ctx.fill();
+          p.y += p.d; p.x += Math.sin(p.angle) * 1.5;
+          p.angle += p.tiltSpeed; p.tilt += p.tiltSpeed;
+        });
+        frame++;
+        if (frame < 160) requestAnimationFrame(draw);
+        else ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+      draw();
+    }
+
+    /* ── Next question ── */
+    function nextQuestion() {
+      closeOverlay();
+      if (currentQ < QUESTIONS.length - 1) {
+        currentQ++;
+        loadQuestion();
+        showToast('➡️ Next question loaded!');
+      } else {
+        showToast('🏆 Quiz complete! Great session!');
+        $('btn-next').disabled = true;
+        $('btn-reveal').disabled = true;
+      }
+    }
+
+    /* ── End quiz ── */
+    function endQuiz() {
+      clearInterval(timerInterval);
+      closeOverlay();
+      showToast('🛑 Quiz ended. Returning to session…', 'warn');
+      setTimeout(() => { window.location.href = 'launchsession.html'; }, 1800);
+    }
+
+    /* ── Toast ── */
+    function showToast(msg, type = '') {
+      const t = $('toast'); t.textContent = msg;
+      t.className = 'toast' + (type ? ' ' + type : '');
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    /* ── Init ── */
+    loadQuestion();
+  </script>
+</body>
+</html>
