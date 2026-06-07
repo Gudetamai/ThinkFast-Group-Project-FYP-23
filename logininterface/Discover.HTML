@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ThinkFast – Discover</title>
+  <link href="https://fonts.googleapis.com/css2?family=Boogaloo&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="discover.css">
+</head>
+<body>
+  <div class="blob blob-1"></div><div class="blob blob-2"></div><div class="blob blob-3"></div>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a class="nav-logo" href="#"><div class="nav-logo-icon">⚡</div><span class="nav-logo-name">Think<span>Fast</span></span></a>
+    <div class="nav-center">
+      <div class="nav-search-wrap">
+        <span class="icon">🔍</span>
+        <input type="text" id="nav-search" placeholder="Search public quizzes…" oninput="render()">
+      </div>
+    </div>
+    <div class="nav-right">
+      <span class="nav-badge">🎓 Teacher</span>
+      <button class="theme-btn" id="theme-btn" onclick="toggleTheme()">🌙</button>
+      <a class="nav-btn" href="library.html">📚 My Library</a>
+      <a class="nav-btn" href="thinkfast-login.html">🚪 Log Out</a>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <div class="hero-section">
+    <span class="hero-emoji">🌐</span>
+    <div class="hero-title">Discover <span>Public</span> Quizzes</div>
+    <p class="hero-desc">Browse quiz sets shared by teachers worldwide. Preview questions, save your favourites to your library, and launch them instantly.</p>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="hero-stat-val" id="h-total">0</div><div class="hero-stat-lbl">Public Quizzes</div></div>
+      <div class="hero-stat"><div class="hero-stat-val" id="h-saved">0</div><div class="hero-stat-lbl">Saved by You</div></div>
+      <div class="hero-stat"><div class="hero-stat-val" id="h-creators">0</div><div class="hero-stat-lbl">Creators</div></div>
+      <div class="hero-stat"><div class="hero-stat-val" id="h-qs">0</div><div class="hero-stat-lbl">Total Questions</div></div>
+    </div>
+  </div>
+
+  <main class="main">
+
+    <!-- Saved banner -->
+    <div class="saved-banner" id="saved-banner">
+      ✅ <span id="saved-banner-text">0 quizzes saved to your library</span>
+      <a href="library.html" style="margin-left:auto;color:var(--yellow);font-size:.82rem;text-decoration:none;font-weight:700">View Library →</a>
+    </div>
+
+    <!-- Featured / Trending -->
+    <div class="section-label"><h2>🔥 Trending Now</h2></div>
+    <div class="featured-row" id="featured-row"></div>
+
+    <!-- All public quizzes -->
+    <div class="section-label">
+      <h2>📦 All Public Quizzes</h2>
+      <span class="count-chip" id="count-chip">0</span>
+    </div>
+
+    <!-- Category pills -->
+    <div class="cat-strip" id="cat-strip"></div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <select class="filter-select" id="filter-diff" onchange="render()">
+        <option value="">All Difficulties</option>
+        <option>Easy</option><option>Medium</option><option>Hard</option>
+      </select>
+      <select class="filter-select" id="filter-sort" onchange="render()">
+        <option value="popular">Most Popular</option>
+        <option value="newest">Newest</option>
+        <option value="saves">Most Saved</option>
+      </select>
+      <div class="view-toggle">
+        <button class="view-btn active" id="vbtn-grid" onclick="setView('grid')" title="Grid">⊞</button>
+        <button class="view-btn"        id="vbtn-list" onclick="setView('list')" title="List">☰</button>
+      </div>
+    </div>
+
+    <div class="quiz-grid" id="quiz-grid"></div>
+    <div class="quiz-list hidden" id="quiz-list"></div>
+  </main>
+
+  <!-- Preview Modal -->
+  <div class="overlay" id="modal-overlay" onclick="overlayClick(event)">
+    <div class="modal" id="modal">
+      <div class="modal-banner" id="modal-banner" style="background:#1a1a2e">
+        <button class="modal-close" onclick="closeModal()">✕</button>
+        <span class="modal-banner-emoji" id="modal-emoji">💻</span>
+      </div>
+      <div class="modal-body">
+        <div class="modal-title" id="modal-title">Quiz Title</div>
+        <div class="modal-creator" id="modal-creator"></div>
+        <div class="modal-desc" id="modal-desc"></div>
+        <div class="modal-tags" id="modal-tags"></div>
+        <div class="modal-qs-title">Sample Questions</div>
+        <div id="modal-questions"></div>
+        <div class="modal-footer">
+          <button class="btn-modal-save" id="btn-modal-save" onclick="modalSave()">⭐ Save to Library</button>
+          <button class="btn-modal-close" onclick="closeModal()">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const BANNER_COLORS = ['#1a1a2e','#16213e','#1a2035','#1e1e3f','#221a2e','#1a2e2e','#2e1a1a','#1a2e1a'];
+    const QUIZZES = [
+      {id:1,  emoji:'💻', title:'Web Dev Fundamentals',   creator:'Mr. Ahmad',     creatorEmoji:'👨‍🏫', category:'Technology', difficulty:'Easy',   questions:10, saves:142, plays:380, trending:true,  desc:'HTML, CSS and JavaScript basics for beginners. Perfect for intro classes.',             color:'#1a1a2e', tags:['HTML','CSS','JS'],      sampleQs:[{q:'What does HTML stand for?',choices:['HyperText Markup Language','High Tech Modern Language','HyperTool Making Links','Home Text Markup']},{q:'Which tag creates a paragraph?',choices:['<p>','<div>','<span>','<br>']}]},
+      {id:2,  emoji:'🔬', title:'Science Explorer Pack',  creator:'Ms. Siti',      creatorEmoji:'👩‍🏫', category:'Science',    difficulty:'Medium', questions:12, saves:98,  plays:210, trending:true,  desc:'Biology, chemistry and physics questions designed for secondary students.',              color:'#16213e', tags:['Biology','Chemistry'],   sampleQs:[{q:'What is the powerhouse of the cell?',choices:['Nucleus','Mitochondria','Ribosome','Cell Wall']},{q:'What is H2O?',choices:['Hydrogen','Oxygen','Water','Helium']}]},
+      {id:3,  emoji:'🔢', title:'Math Olympiad Prep',     creator:'Dr. Faiz',      creatorEmoji:'👨‍🔬', category:'Math',       difficulty:'Hard',   questions:15, saves:76,  plays:190, trending:true,  desc:'Challenging algebra, geometry and statistics questions for advanced students.',          color:'#1a2035', tags:['Algebra','Geometry'],    sampleQs:[{q:'What is 12 × 12?',choices:['124','144','142','148']},{q:'Solve: 2x + 6 = 14',choices:['x=3','x=4','x=6','x=8']}]},
+      {id:4,  emoji:'📖', title:'World History Trivia',   creator:'Cik Amirah',    creatorEmoji:'👩‍🏫', category:'History',    difficulty:'Easy',   questions:20, saves:134, plays:445, trending:true,  desc:'Journey through major world events, figures and civilisations across history.',           color:'#1e1e3f', tags:['Events','Figures'],      sampleQs:[{q:'When did WW2 end?',choices:['1943','1944','1945','1946']},{q:'Who wrote Romeo and Juliet?',choices:['Dickens','Shakespeare','Austen','Poe']}]},
+      {id:5,  emoji:'🌍', title:'General Knowledge Blitz',creator:'En. Hafiz',     creatorEmoji:'👨‍🏫', category:'General',    difficulty:'Medium', questions:18, saves:210, plays:620, trending:false, desc:'A mixed bag of fun trivia covering sports, pop culture, geography and science.',        color:'#221a2e', tags:['Trivia','Fun'],          sampleQs:[{q:'Capital of Japan?',choices:['Beijing','Seoul','Tokyo','Bangkok']},{q:'How many sides in a hexagon?',choices:['5','6','7','8']}]},
+      {id:6,  emoji:'🗣️', title:'English Grammar Pro',   creator:'Ms. Layla',     creatorEmoji:'👩‍🏫', category:'Language',   difficulty:'Easy',   questions:14, saves:88,  plays:255, trending:false, desc:'Grammar rules, vocabulary, and sentence structure for ESL and advanced learners.',       color:'#1a2e2e', tags:['Grammar','Vocab'],       sampleQs:[{q:'Which is a noun?',choices:['Run','Blue','Cat','Quickly']},{q:'Past tense of "go"?',choices:['Goed','Goes','Gone','Went']}]},
+      {id:7,  emoji:'🌏', title:'Malaysian Geography',    creator:'Cik Nurul',     creatorEmoji:'👩‍🏫', category:'Geography',  difficulty:'Easy',   questions:10, saves:62,  plays:148, trending:false, desc:'Rivers, states, capitals and landmarks of Malaysia. Great for local studies.',          color:'#2e1a1a', tags:['Malaysia','Maps'],       sampleQs:[{q:'Capital of Malaysia?',choices:['Johor Bahru','George Town','Kuala Lumpur','Kota Kinabalu']},{q:'Longest river in Malaysia?',choices:['Klang','Pahang','Rajang','Muar']}]},
+      {id:8,  emoji:'⚽', title:'Sports Champions Quiz',  creator:'Coach Rizal',   creatorEmoji:'🧑‍🏫', category:'Sports',     difficulty:'Medium', questions:12, saves:115, plays:330, trending:false, desc:'Football, badminton, basketball and Olympics trivia for sports fans.',                  color:'#1a2e1a', tags:['Football','Olympics'],   sampleQs:[{q:'How many players in football?',choices:['9','10','11','12']},{q:'Which country invented badminton?',choices:['China','India','England','Malaysia']}]},
+      {id:9,  emoji:'🧠', title:'Brain Teaser Challenge', creator:'Mr. Zulkifli',  creatorEmoji:'👨‍🏫', category:'General',    difficulty:'Hard',   questions:8,  saves:44,  plays:122, trending:false, desc:'Logic puzzles and lateral thinking questions that push critical thinking skills.',      color:'#221a2e', tags:['Logic','Puzzles'],       sampleQs:[{q:'What has hands but cannot clap?',choices:['Gloves','Clock','Statue','Robot']},{q:'The more you take, the more you leave behind. What is it?',choices:['Time','Money','Steps','Footprints']}]},
+      {id:10, emoji:'🎵', title:'Music Theory Basics',    creator:'Ms. Faridah',   creatorEmoji:'👩‍🏫', category:'Arts',       difficulty:'Medium', questions:10, saves:55,  plays:140, trending:false, desc:'Notes, scales, rhythms and musical terms for beginner music students.',                color:'#1e1e3f', tags:['Notes','Rhythm'],        sampleQs:[{q:'How many notes in an octave?',choices:['6','7','8','9']},{q:'What does "forte" mean?',choices:['Slow','Loud','Soft','Fast']}]},
+    ];
+
+    let savedIds = new Set(), currentCat = 'All', currentView = 'grid', isLight = false, previewId = null;
+    const $ = id => document.getElementById(id);
+
+    function toggleTheme() {
+      isLight = !isLight;
+      document.body.classList.toggle('light', isLight);
+      $('theme-btn').textContent = isLight ? '🌙' : '☀️';
+      showToast(isLight ? '☀️ Light mode on!' : '🌙 Dark mode on!');
+    }
+
+    function updateHero() {
+      $('h-total').textContent    = QUIZZES.length;
+      $('h-saved').textContent    = savedIds.size;
+      $('h-creators').textContent = new Set(QUIZZES.map(q => q.creator)).size;
+      $('h-qs').textContent       = QUIZZES.reduce((s, q) => s + q.questions, 0);
+    }
+
+    function updateSavedBanner() {
+      const n = savedIds.size;
+      const b = $('saved-banner');
+      b.classList.toggle('show', n > 0);
+      $('saved-banner-text').textContent = n + ' quiz' + (n !== 1 ? 'zes' : '') + ' saved to your library';
+    }
+
+    function buildCatStrip() {
+      const cats = ['All', ...new Set(QUIZZES.map(q => q.category))];
+      $('cat-strip').innerHTML = cats.map(c =>
+        `<button class="cat-pill${c === currentCat ? ' active' : ''}" onclick="setCat('${c}')">${c === 'All' ? '⭐ All' : c}</button>`
+      ).join('');
+    }
+    function setCat(c) { currentCat = c; render(); }
+
+    function setView(v) {
+      currentView = v;
+      ['grid','list'].forEach(x => {
+        $('vbtn-' + x).classList.toggle('active', x === v);
+        $('quiz-' + x).classList.toggle('hidden', x !== v);
+      });
+    }
+
+    function filtered() {
+      const search = ($('nav-search').value || '').toLowerCase();
+      const diff   = $('filter-diff').value;
+      const sort   = $('filter-sort').value;
+      let list = QUIZZES.filter(q =>
+        (currentCat === 'All' || q.category === currentCat) &&
+        (!diff   || q.difficulty === diff) &&
+        (!search || q.title.toLowerCase().includes(search) || q.creator.toLowerCase().includes(search) || q.category.toLowerCase().includes(search) || q.tags.some(t => t.toLowerCase().includes(search)))
+      );
+      if (sort === 'newest') list = [...list].reverse();
+      if (sort === 'saves')  list = [...list].sort((a,b) => b.saves - a.saves);
+      if (sort === 'popular')list = [...list].sort((a,b) => b.plays - a.plays);
+      return list;
+    }
+
+    function render() {
+      buildCatStrip();
+      const list = filtered();
+      $('count-chip').textContent = list.length;
+      const empty = `<div class="empty-state"><div class="empty-icon">📭</div><p>No quizzes match your filters.</p></div>`;
+      if (!list.length) { $('quiz-grid').innerHTML = $('quiz-list').innerHTML = empty; return; }
+
+      $('quiz-grid').innerHTML = list.map((q, i) => `
+        <div class="grid-card" style="animation-delay:${i*.05}s">
+          <div class="gc-banner" style="background:${q.color}">
+            <span class="gc-emoji">${q.emoji}</span>
+            <span class="fc-badge badge-${q.difficulty.toLowerCase()}" style="position:absolute;top:10px;right:10px;z-index:2">${q.difficulty}</span>
+          </div>
+          <div class="gc-body">
+            <div class="gc-header"><div class="gc-title">${esc(q.title)}</div></div>
+            <div class="gc-creator">${q.creatorEmoji} <span>${esc(q.creator)}</span></div>
+            <div class="gc-meta">
+              <span>❓ ${q.questions} Qs</span>
+              <span>⭐ ${q.saves} saves</span>
+              <span>▶️ ${q.plays} plays</span>
+            </div>
+            <div class="gc-actions">
+              <button class="gc-btn save${savedIds.has(q.id) ? ' saved' : ''}" onclick="toggleSave(${q.id}, event)">${savedIds.has(q.id) ? '✅ Saved' : '⭐ Save'}</button>
+              <button class="gc-btn preview" onclick="openPreview(${q.id})">👁️ Preview</button>
+            </div>
+          </div>
+        </div>`).join('');
+
+      $('quiz-list').innerHTML = list.map((q, i) => `
+        <div class="list-row" style="animation-delay:${i*.04}s">
+          <div class="list-icon" style="background:${q.color}">${q.emoji}</div>
+          <div class="list-body">
+            <div class="list-title">${esc(q.title)}</div>
+            <div class="list-meta">
+              <span>${q.creatorEmoji} ${esc(q.creator)}</span>
+              <span>❓ ${q.questions} Qs</span>
+              <span>⭐ ${q.saves} saves</span>
+              <span>🏷️ ${q.category}</span>
+            </div>
+          </div>
+          <span class="list-badge badge-${q.difficulty.toLowerCase()}">${q.difficulty}</span>
+          <div class="list-actions">
+            <button class="icon-btn save${savedIds.has(q.id) ? ' saved' : ''}" title="${savedIds.has(q.id) ? 'Saved' : 'Save'}" onclick="toggleSave(${q.id}, event)">${savedIds.has(q.id) ? '✅' : '⭐'}</button>
+            <button class="icon-btn preview" title="Preview" onclick="openPreview(${q.id})">👁️</button>
+          </div>
+        </div>`).join('');
+    }
+
+    function renderFeatured() {
+      const trending = QUIZZES.filter(q => q.trending);
+      $('featured-row').innerHTML = trending.map((q, i) => `
+        <div class="featured-card" style="animation-delay:${i*.07}s">
+          <div class="fc-banner" style="background:${q.color}">
+            <span class="fc-emoji">${q.emoji}</span>
+            <span class="fc-hot">🔥 Hot</span>
+            <span class="fc-badge badge-${q.difficulty.toLowerCase()}">${q.difficulty}</span>
+          </div>
+          <div class="fc-body">
+            <div class="fc-title">${esc(q.title)}</div>
+            <div class="fc-creator">
+              <span class="creator-avatar" style="background:var(--yellow)">${q.creatorEmoji}</span>
+              ${esc(q.creator)}
+            </div>
+            <div class="fc-meta">
+              <span>❓ ${q.questions} Qs</span>
+              <span>⭐ ${q.saves}</span>
+              <span>▶️ ${q.plays}</span>
+            </div>
+            <div class="fc-actions">
+              <button class="fc-btn save${savedIds.has(q.id) ? ' saved' : ''}" onclick="toggleSave(${q.id}, event)">${savedIds.has(q.id) ? '✅ Saved' : '⭐ Save'}</button>
+              <button class="fc-btn preview" onclick="openPreview(${q.id})">👁️ View</button>
+            </div>
+          </div>
+        </div>`).join('');
+    }
+
+    function toggleSave(id, e) {
+      e.stopPropagation();
+      const q = QUIZZES.find(x => x.id === id);
+      if (savedIds.has(id)) {
+        savedIds.delete(id);
+        showToast('🗑️ Removed from library.', 'warn');
+      } else {
+        savedIds.add(id);
+        showToast('⭐ "' + q.title + '" saved to your library!');
+      }
+      updateHero(); updateSavedBanner(); render(); renderFeatured();
+    }
+
+    function openPreview(id) {
+      const q = QUIZZES.find(x => x.id === id);
+      previewId = id;
+      $('modal-banner').style.background = q.color;
+      $('modal-emoji').textContent  = q.emoji;
+      $('modal-title').textContent  = q.title;
+      $('modal-creator').innerHTML  = `${q.creatorEmoji} <strong>${esc(q.creator)}</strong> &nbsp;·&nbsp; ${q.category} &nbsp;·&nbsp; <span class="list-badge badge-${q.difficulty.toLowerCase()}" style="display:inline">${q.difficulty}</span>`;
+      $('modal-desc').textContent   = q.desc;
+      $('modal-tags').innerHTML     = q.tags.map(t => `<span class="modal-tag">${t}</span>`).join('') + `<span class="modal-tag">❓ ${q.questions} questions</span><span class="modal-tag">⭐ ${q.saves} saves</span>`;
+      $('modal-questions').innerHTML = q.sampleQs.map(sq => `
+        <div class="modal-q-preview">${esc(sq.q)}
+          <div class="modal-q-choices">${sq.choices.map((c,i)=>`<div class="mq-choice"><div class="mq-pip ${['a','b','c','d'][i]}">${['A','B','C','D'][i]}</div>${esc(c)}</div>`).join('')}</div>
+        </div>`).join('');
+      const btn = $('btn-modal-save');
+      if (savedIds.has(id)) { btn.textContent = '✅ Already Saved'; btn.classList.add('saved'); }
+      else { btn.textContent = '⭐ Save to Library'; btn.classList.remove('saved'); }
+      $('modal-overlay').classList.add('open');
+    }
+
+    function modalSave() {
+      if (!previewId) return;
+      const q = QUIZZES.find(x => x.id === previewId);
+      if (savedIds.has(previewId)) {
+        savedIds.delete(previewId);
+        $('btn-modal-save').textContent = '⭐ Save to Library';
+        $('btn-modal-save').classList.remove('saved');
+        showToast('🗑️ Removed from library.', 'warn');
+      } else {
+        savedIds.add(previewId);
+        $('btn-modal-save').textContent = '✅ Already Saved';
+        $('btn-modal-save').classList.add('saved');
+        showToast('⭐ "' + q.title + '" saved to your library!');
+      }
+      updateHero(); updateSavedBanner(); render(); renderFeatured();
+    }
+
+    function closeModal() { $('modal-overlay').classList.remove('open'); }
+    function overlayClick(e) { if (e.target.id === 'modal-overlay') closeModal(); }
+
+    const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+    function showToast(msg, type = '') {
+      const t = $('toast'); t.textContent = msg;
+      t.className = 'toast' + (type ? ' ' + type : '');
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    updateHero(); updateSavedBanner(); buildCatStrip(); renderFeatured(); render();
+  </script>
+</body>
+</html>
