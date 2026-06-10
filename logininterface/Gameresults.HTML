@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ThinkFast – Game Results</title>
+  <link href="https://fonts.googleapis.com/css2?family=Boogaloo&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="gameresults.css">
+</head>
+<body>
+  <div class="blob blob-1"></div><div class="blob blob-2"></div><div class="blob blob-3"></div>
+
+  <!-- Student Detail Modal -->
+  <div class="overlay" id="modal-overlay" onclick="overlayClick(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">📋 Student Report</span>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-student-header" id="modal-student-header"></div>
+      <div class="modal-q-list" id="modal-q-list"></div>
+    </div>
+  </div>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a class="nav-logo" href="#"><div class="nav-logo-icon">⚡</div><span class="nav-logo-name">Think<span>Fast</span></span></a>
+    <div class="nav-right">
+      <span class="nav-badge">🎓 Teacher</span>
+      <button class="theme-btn" id="theme-btn" onclick="toggleTheme()">🌙</button>
+      <a class="nav-btn" href="launchsession.html">🚀 New Session</a>
+      <a class="nav-btn" href="thinkfast-login.html">🚪 Log Out</a>
+    </div>
+  </nav>
+
+  <main class="main">
+    <div class="page-header">
+      <h1>🏆 Game <span>Results</span></h1>
+      <p>Full session report — leaderboard, per-question breakdown, and individual student performance.</p>
+    </div>
+
+    <!-- Session summary bar -->
+    <div class="summary-bar">
+      <div class="summary-info">
+        <div class="summary-item"><div class="lbl">Quiz</div><div class="val" id="sum-quiz">—</div></div>
+        <div class="summary-item"><div class="lbl">Date</div><div class="val" id="sum-date">—</div></div>
+        <div class="summary-item"><div class="lbl">Duration</div><div class="val" id="sum-dur">—</div></div>
+        <div class="summary-item"><div class="lbl">PIN</div><div class="val" id="sum-pin">—</div></div>
+      </div>
+      <div class="summary-actions">
+        <button class="btn-export" onclick="exportCSV()">📥 Export CSV</button>
+        <button class="btn-export primary" onclick="printReport()">🖨️ Print Report</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-icon yellow">👥</div><div><div class="stat-val" id="st-players">0</div><div class="stat-lbl">Players</div></div></div>
+      <div class="stat-card"><div class="stat-icon green">✅</div><div><div class="stat-val" id="st-avgacc">0%</div><div class="stat-lbl">Avg Accuracy</div></div></div>
+      <div class="stat-card"><div class="stat-icon blue">❓</div><div><div class="stat-val" id="st-qs">0</div><div class="stat-lbl">Questions</div></div></div>
+      <div class="stat-card"><div class="stat-icon purple">🏆</div><div><div class="stat-val" id="st-topscore">0</div><div class="stat-lbl">Top Score</div></div></div>
+      <div class="stat-card"><div class="stat-icon red">😬</div><div><div class="stat-val" id="st-hardest">—</div><div class="stat-lbl">Hardest Q</div></div></div>
+    </div>
+
+    <!-- Podium -->
+    <div class="section-label"><h2>🥇 Top 3 Podium</h2></div>
+    <div class="podium-wrap" id="podium-wrap"></div>
+
+    <!-- Leaderboard -->
+    <div class="section-label"><h2>📊 Full Leaderboard</h2></div>
+    <table class="lb-table" id="lb-table">
+      <thead>
+        <tr>
+          <th style="width:44px">#</th>
+          <th>Player</th>
+          <th class="hide-mob" style="text-align:center">✅ Correct</th>
+          <th class="hide-mob" style="text-align:center">❌ Wrong</th>
+          <th style="text-align:right">Accuracy</th>
+          <th style="text-align:right">Score</th>
+        </tr>
+      </thead>
+      <tbody id="lb-body"></tbody>
+    </table>
+
+    <!-- Question breakdown -->
+    <div class="section-label"><h2>🔍 Question Breakdown</h2></div>
+    <div class="q-breakdown-list" id="q-breakdown"></div>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const SESSION = { quiz:'Web Dev Fundamentals', date:'10 Jun 2026', duration:'8 min 34 sec', pin:'482931' };
+    const QUESTIONS = [
+      { text:'What does HTML stand for?',          choices:['HyperText Markup Language','High Tech Modern Language','HyperTool Making Links','Home Text Markup'], correct:0 },
+      { text:'Which tag creates a paragraph?',     choices:['<p>','<div>','<span>','<br>'],  correct:0 },
+      { text:'What does CSS stand for?',           choices:['Creative Style','Cascading Style Sheets','Computer Style','Colorful Style'], correct:1 },
+      { text:'Which is a JavaScript data type?',   choices:['String','Route','Table','Schema'], correct:0 },
+      { text:'What does HTTP stand for?',          choices:['HyperText Transfer Protocol','High Tech Transfer','Home Text Protocol','HyperTool Transfer'], correct:0 },
+    ];
+    const STUDENTS = [
+      { name:'Maisarah', avatar:'🌸', color:'#f9c700',  answers:[0,0,1,0,0], streak:5 },
+      { name:'Hassan',   avatar:'🦁', color:'#3d8eff',  answers:[0,0,1,0,3], streak:3 },
+      { name:'Qumairah', avatar:'🐯', color:'#ff3d5a',  answers:[0,2,1,0,0], streak:2 },
+      { name:'Azalea',   avatar:'🦋', color:'#a855f7',  answers:[0,0,3,2,0], streak:2 },
+      { name:'Ahmad',    avatar:'🐺', color:'#1fd685',  answers:[2,0,1,3,0], streak:1 },
+      { name:'Faiz',     avatar:'🐸', color:'#ff8c42',  answers:[0,1,2,0,2], streak:0 },
+    ];
+    const LABELS = ['A','B','C','D'];
+    const PTS_CORRECT = 100, PTS_WRONG = 0;
+
+    let isLight = false;
+    const $ = id => document.getElementById(id);
+
+    function calcStudent(s) {
+      let correct = 0, wrong = 0, score = 0;
+      s.answers.forEach((a, i) => {
+        if (a === QUESTIONS[i].correct) { correct++; score += PTS_CORRECT; }
+        else wrong++;
+      });
+      const acc = Math.round((correct / QUESTIONS.length) * 100);
+      return { ...s, correct, wrong, score, acc };
+    }
+
+    const RESULTS = STUDENTS.map(calcStudent).sort((a,b) => b.score - a.score || b.correct - a.correct);
+
+    function toggleTheme() {
+      isLight = !isLight;
+      document.body.classList.toggle('light', isLight);
+      $('theme-btn').textContent = isLight ? '🌙' : '☀️';
+      showToast(isLight ? '☀️ Light mode on!' : '🌙 Dark mode on!');
+    }
+
+    function buildSummary() {
+      $('sum-quiz').textContent = SESSION.quiz;
+      $('sum-date').textContent = SESSION.date;
+      $('sum-dur').textContent  = SESSION.duration;
+      $('sum-pin').textContent  = SESSION.pin;
+    }
+
+    function buildStats() {
+      const avgAcc  = Math.round(RESULTS.reduce((s,r) => s + r.acc, 0) / RESULTS.length);
+      const hardest = QUESTIONS.reduce((worst, q, i) => {
+        const correct = RESULTS.filter(r => r.answers[i] === q.correct).length;
+        return correct < worst.count ? { idx:i+1, count:correct } : worst;
+      }, { idx:1, count:RESULTS.length });
+      $('st-players').textContent  = RESULTS.length;
+      $('st-avgacc').textContent   = avgAcc + '%';
+      $('st-qs').textContent       = QUESTIONS.length;
+      $('st-topscore').textContent = RESULTS[0].score;
+      $('st-hardest').textContent  = 'Q' + hardest.idx;
+    }
+
+    function buildPodium() {
+      const top = RESULTS.slice(0,3);
+      const order = [1, 0, 2]; // display: 2nd, 1st, 3rd
+      const rankClass = ['rank-2','rank-1','rank-3'];
+      const rankLabel = ['🥈','🥇','🥉'];
+      $('podium-wrap').innerHTML = order.map((ri, di) => {
+        const p = top[ri];
+        if (!p) return '';
+        return `<div class="podium-player ${rankClass[di]}" style="animation-delay:${di*.15}s">
+          <div class="podium-avatar">${p.avatar}</div>
+          <div class="podium-name">${esc(p.name)}</div>
+          <div class="podium-score">${p.correct}/${QUESTIONS.length} correct</div>
+          <div class="podium-block">
+            ${di===1?'<div class="podium-crown">👑</div>':''}
+            <div class="podium-rank">${rankLabel[di]}</div>
+            <div class="podium-pts">${p.score} pts</div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    function buildLeaderboard() {
+      const maxScore = RESULTS[0].score || 1;
+      $('lb-body').innerHTML = RESULTS.map((r, i) => {
+        const rankColors = ['gold','silver','bronze'];
+        const rc = rankColors[i] || '';
+        const rowClass = i < 3 ? `top${i+1}` : '';
+        const pct = Math.round((r.score / maxScore) * 100);
+        const accClass = r.acc >= 80 ? 'acc-high' : r.acc >= 50 ? 'acc-mid' : 'acc-low';
+        return `<tr class="lb-row ${rowClass}" style="animation-delay:${i*.06}s" onclick="openStudentModal(${i})">
+          <td><div class="rank-num ${rc}">${i+1}</div></td>
+          <td>
+            <div class="player-cell">
+              <div class="player-av" style="background:${r.color}">${r.avatar}</div>
+              <div>
+                <div class="player-name-cell">${esc(r.name)}</div>
+                ${r.streak > 1 ? `<div class="player-streak">🔥 ${r.streak} streak</div>` : ''}
+              </div>
+            </div>
+          </td>
+          <td class="correct-cell hide-mob">${r.correct}</td>
+          <td class="wrong-cell hide-mob">${r.wrong}</td>
+          <td class="acc-cell"><span class="acc-pill ${accClass}">${r.acc}%</span></td>
+          <td class="score-cell">
+            <div class="score-bar-wrap">
+              <div class="score-bar"><div class="score-bar-fill" style="width:${pct}%"></div></div>
+              ${r.score}
+            </div>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    function buildBreakdown() {
+      const total = RESULTS.length;
+      $('q-breakdown').innerHTML = QUESTIONS.map((q, qi) => {
+        const choiceCounts = [0,0,0,0];
+        RESULTS.forEach(r => choiceCounts[r.answers[qi]]++);
+        const correctCount = choiceCounts[q.correct];
+        const pct = Math.round((correctCount / total) * 100);
+        const bars = q.choices.map((c, ci) => {
+          const cnt = choiceCounts[ci];
+          const barPct = Math.round((cnt / total) * 100);
+          const isCorrect = ci === q.correct;
+          return `<div class="qb-bar-row">
+            <div class="qb-label ${['a','b','c','d'][ci]}">${LABELS[ci]}</div>
+            <div class="qb-choice-text">${esc(c)}</div>
+            <div class="qb-bar"><div class="qb-bar-fill ${isCorrect?'correct':'wrong'}" style="width:${barPct}%"></div></div>
+            <div class="qb-count">${cnt}/${total}</div>
+          </div>`;
+        }).join('');
+        return `<div class="q-breakdown-card" style="animation-delay:${qi*.07}s">
+          <div class="qb-header">
+            <span class="qb-num">Q${qi+1}</span>
+            <div class="qb-text">${esc(q.text)}</div>
+            <span class="qb-correct-answer">✅ ${LABELS[q.correct]}: ${esc(q.choices[q.correct])}</span>
+          </div>
+          ${bars}
+          <div class="qb-stats">
+            <span class="qb-stat good">✅ ${correctCount} correct (${pct}%)</span>
+            <span class="qb-stat bad">❌ ${total-correctCount} wrong</span>
+            <span class="qb-stat info">📊 ${pct >= 70 ? 'Easy' : pct >= 40 ? 'Medium' : 'Hard'} question</span>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    function openStudentModal(idx) {
+      const r = RESULTS[idx];
+      $('modal-student-header').innerHTML = `
+        <div class="modal-av" style="background:${r.color}">${r.avatar}</div>
+        <div>
+          <div class="modal-student-name">${esc(r.name)}</div>
+          <div class="modal-student-sub">${r.correct}/${QUESTIONS.length} correct &nbsp;·&nbsp; ${r.acc}% accuracy ${r.streak>1?`&nbsp;·&nbsp; 🔥 ${r.streak} streak`:''}</div>
+        </div>
+        <div class="modal-score-big">${r.score} pts</div>`;
+      $('modal-q-list').innerHTML = QUESTIONS.map((q, qi) => {
+        const ans = r.answers[qi];
+        const isRight = ans === q.correct;
+        return `<div class="modal-q-row ${isRight?'q-right':'q-wrong'}">
+          <div class="mq-icon">${isRight?'✅':'❌'}</div>
+          <div class="mq-body">
+            <div class="mq-question">Q${qi+1}: ${esc(q.text)}</div>
+            <div class="mq-answer">
+              Answered: <span class="${isRight?'right':'wrong'}">${LABELS[ans]}: ${esc(q.choices[ans])}</span>
+              ${!isRight ? ` &nbsp;·&nbsp; Correct: <span class="right">${LABELS[q.correct]}: ${esc(q.choices[q.correct])}</span>` : ''}
+            </div>
+          </div>
+          <div class="mq-pts">${isRight?'+100 pts':'0 pts'}</div>
+        </div>`;
+      }).join('');
+      $('modal-overlay').classList.add('open');
+    }
+
+    function closeModal() { $('modal-overlay').classList.remove('open'); }
+    function overlayClick(e) { if (e.target.id === 'modal-overlay') closeModal(); }
+
+    function exportCSV() {
+      const rows = [['Rank','Name','Score','Correct','Wrong','Accuracy']];
+      RESULTS.forEach((r,i) => rows.push([i+1, r.name, r.score, r.correct, r.wrong, r.acc+'%']));
+      const csv = rows.map(r => r.join(',')).join('\n');
+      const a = document.createElement('a');
+      a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+      a.download = 'thinkfast-results.csv';
+      a.click();
+      showToast('📥 CSV exported!');
+    }
+
+    function printReport() { window.print(); showToast('🖨️ Opening print dialog…'); }
+
+    const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+    function showToast(msg, type='') {
+      const t = $('toast'); t.textContent = msg;
+      t.className = 'toast' + (type ? ' '+type : ''); t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    buildSummary(); buildStats(); buildPodium(); buildLeaderboard(); buildBreakdown();
+  </script>
+</body>
+</html>
