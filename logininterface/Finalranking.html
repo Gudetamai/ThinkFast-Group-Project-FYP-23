@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ThinkFast – Final Ranking</title>
+  <link href="https://fonts.googleapis.com/css2?family=Boogaloo&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="finalranking.css">
+</head>
+<body>
+  <canvas id="confetti-canvas"></canvas>
+  <div class="blob blob-1"></div><div class="blob blob-2"></div><div class="blob blob-3"></div>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a class="nav-logo" href="#"><div class="nav-logo-icon">⚡</div><span class="nav-logo-name">Think<span>Fast</span></span></a>
+    <div class="nav-right">
+      <button class="theme-btn" id="theme-btn" onclick="toggleTheme()">🌙</button>
+      <a class="nav-btn" href="gameresults.html">📊 Full Report</a>
+      <a class="nav-btn" href="launchsession.html">🚀 Play Again</a>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <div class="hero-bg">
+    <span class="hero-trophy">🏆</span>
+    <div class="hero-title">Game <span>Over!</span></div>
+    <p class="hero-sub">Here's how everyone finished — congratulations to all players!</p>
+    <div class="hero-quiz-chip">⚡ Web Dev Fundamentals &nbsp;·&nbsp; 5 Questions &nbsp;·&nbsp; 6 Players</div>
+  </div>
+
+  <main class="main">
+
+    <!-- My Result Card -->
+    <div class="my-result-card" id="my-result-card">
+      <div class="my-result-icon" id="my-icon">🦁</div>
+      <div class="my-result-info">
+        <div class="my-result-title">You finished <span id="my-rank-text">2nd</span>!</div>
+        <div class="my-result-sub" id="my-sub">Great effort — you got 4 out of 5 correct with 80% accuracy and a 3-question streak!</div>
+      </div>
+      <div class="my-result-score" id="my-score">400 pts</div>
+    </div>
+
+    <!-- Podium -->
+    <div class="podium-section">
+      <div class="section-label"><h2>🥇 Top 3 Podium</h2></div>
+      <div class="podium-wrap" id="podium-wrap"></div>
+    </div>
+
+    <!-- Full ranking -->
+    <div class="ranking-section">
+      <div class="section-label"><h2>📋 Final Ranking</h2></div>
+      <div class="rank-list" id="rank-list"></div>
+    </div>
+
+    <!-- Action buttons -->
+    <div class="actions-row">
+      <button class="btn-action primary" onclick="playAgain()">🔄 Play Again</button>
+      <button class="btn-action green"   onclick="shareResult()">📤 Share Result</button>
+      <button class="btn-action secondary" onclick="window.location.href='gameresults.html'">📊 Full Report</button>
+    </div>
+
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const MY_NAME = 'Hassan';
+    const PLAYERS = [
+      { name:'Maisarah', avatar:'🌸', color:'#f9c700', score:500, correct:5, streak:5, acc:100 },
+      { name:'Hassan',   avatar:'🦁', color:'#3d8eff', score:400, correct:4, streak:3, acc:80  },
+      { name:'Qumairah', avatar:'🐯', color:'#ff3d5a', score:400, correct:4, streak:2, acc:80  },
+      { name:'Azalea',   avatar:'🦋', color:'#a855f7', score:300, correct:3, streak:2, acc:60  },
+      { name:'Ahmad',    avatar:'🐺', color:'#1fd685', score:200, correct:2, streak:1, acc:40  },
+      { name:'Faiz',     avatar:'🐸', color:'#ff8c42', score:100, correct:1, streak:0, acc:20  },
+    ].sort((a,b) => b.score - a.score || b.correct - a.correct);
+
+    const MEDAL  = ['🥇','🥈','🥉'];
+    const FILL   = ['top1-fill','top2-fill','top3-fill','rest-fill','rest-fill','rest-fill'];
+    const ORDINAL = ['1st','2nd','3rd','4th','5th','6th'];
+
+    let isLight = false;
+    const $ = id => document.getElementById(id);
+
+    function toggleTheme() {
+      isLight = !isLight;
+      document.body.classList.toggle('light', isLight);
+      $('theme-btn').textContent = isLight ? '🌙' : '☀️';
+      showToast(isLight ? '☀️ Light mode on!' : '🌙 Dark mode on!');
+    }
+
+    function buildMyCard() {
+      const myIdx = PLAYERS.findIndex(p => p.name === MY_NAME);
+      const me = PLAYERS[myIdx];
+      if (!me) return;
+      $('my-icon').textContent   = me.avatar;
+      $('my-rank-text').textContent = ORDINAL[myIdx];
+      $('my-score').textContent  = me.score + ' pts';
+      $('my-sub').textContent    = `Great effort — you got ${me.correct} out of 5 correct with ${me.acc}% accuracy${me.streak > 1 ? ` and a ${me.streak}-question streak!` : '!'}`;
+    }
+
+    function buildPodium() {
+      const top = PLAYERS.slice(0, 3);
+      const ORDER = [1, 0, 2];
+      const RANK_CLASS = ['rank-2','rank-1','rank-3'];
+      $('podium-wrap').innerHTML = ORDER.map((ri, di) => {
+        const p = top[ri]; if (!p) return '';
+        return `<div class="podium-col ${RANK_CLASS[di]}" style="animation-delay:${di*.18}s">
+          <div class="podium-avatar">${p.avatar}</div>
+          <div class="podium-pname">${esc(p.name)}</div>
+          <div class="podium-pts-lbl">${p.score} pts</div>
+          <div class="podium-block">
+            ${di===1 ? '<div class="podium-crown">👑</div>' : ''}
+            <div class="podium-medal">${MEDAL[ri]}</div>
+            <div class="podium-score">${ORDINAL[ri]}</div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    function buildRanking() {
+      const maxScore = PLAYERS[0].score || 1;
+      $('rank-list').innerHTML = PLAYERS.map((p, i) => {
+        const isMe = p.name === MY_NAME;
+        const rowClass = i < 3 ? `top${i+1}` : '';
+        const meClass  = isMe ? 'me' : '';
+        const pct = Math.round((p.score / maxScore) * 100);
+        const posCell = i < 3
+          ? `<div class="medal">${MEDAL[i]}</div>`
+          : `<div class="num">${i+1}</div>`;
+        return `<div class="rank-row ${rowClass} ${meClass}" style="animation-delay:${i*.08}s">
+          <div class="rank-pos">${posCell}</div>
+          <div class="rank-avatar-wrap">
+            <div class="rank-avatar" style="background:${p.color}">${p.avatar}</div>
+            ${isMe ? '<div class="you-tag">YOU</div>' : ''}
+          </div>
+          <div class="rank-info">
+            <div class="rank-name">
+              ${esc(p.name)}
+              ${i===0 ? '<span class="winner-label">👑 Winner</span>' : ''}
+            </div>
+            <div class="rank-sub">
+              <span>${p.correct}/5 correct</span>
+              ${p.streak > 1 ? `<span class="streak">🔥 ${p.streak} streak</span>` : ''}
+              <span class="accuracy">✅ ${p.acc}%</span>
+            </div>
+            <div class="rank-bar-wrap">
+              <div class="rank-bar"><div class="rank-bar-fill ${FILL[i]}" style="width:${pct}%"></div></div>
+              <div class="rank-bar-pct">${pct}%</div>
+            </div>
+          </div>
+          <div class="rank-score-wrap">
+            <div class="rank-pts">${p.score}</div>
+            <div class="rank-pts-lbl">points</div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    function launchConfetti() {
+      const canvas = $('confetti-canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      const COLORS = ['#f9c700','#1fd685','#3d8eff','#ff3d5a','#a855f7','#ff8c42'];
+      const pieces = Array.from({length:160}, () => ({
+        x:Math.random()*canvas.width, y:Math.random()*-canvas.height,
+        r:4+Math.random()*7, d:2+Math.random()*4,
+        color:COLORS[Math.floor(Math.random()*COLORS.length)],
+        tiltSpeed:.1+Math.random()*.2, angle:0,
+        shape:Math.random()>.5?'rect':'circle',
+      }));
+      let frame = 0;
+      function draw() {
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        pieces.forEach(p => {
+          ctx.beginPath(); ctx.fillStyle = p.color;
+          if (p.shape==='circle') { ctx.arc(p.x,p.y,p.r,0,Math.PI*2); }
+          else { ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.angle); ctx.fillRect(-p.r,-p.r/2,p.r*2,p.r); ctx.restore(); }
+          ctx.fill();
+          p.y+=p.d; p.x+=Math.sin(p.angle)*1.8; p.angle+=p.tiltSpeed;
+        });
+        frame++;
+        if (frame < 200) requestAnimationFrame(draw);
+        else ctx.clearRect(0,0,canvas.width,canvas.height);
+      }
+      draw();
+    }
+
+    function playAgain() {
+      showToast('🔄 Returning to session…');
+      setTimeout(() => window.location.href='launchsession.html', 1200);
+    }
+
+    function shareResult() {
+      const myIdx = PLAYERS.findIndex(p => p.name === MY_NAME);
+      const me = PLAYERS[myIdx];
+      const text = `I finished ${ORDINAL[myIdx]} in ThinkFast with ${me.score} pts and ${me.acc}% accuracy! ⚡🏆`;
+      if (navigator.share) { navigator.share({ title:'ThinkFast Result', text }); }
+      else { navigator.clipboard.writeText(text).then(() => showToast('📋 Result copied to clipboard!')); }
+    }
+
+    const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+    function showToast(msg, type='') {
+      const t = $('toast'); t.textContent = msg;
+      t.className = 'toast'+(type?' '+type:''); t.classList.add('show');
+      setTimeout(()=>t.classList.remove('show'),3000);
+    }
+
+    buildMyCard(); buildPodium(); buildRanking();
+    setTimeout(launchConfetti, 400);
+  </script>
+</body>
+</html>
